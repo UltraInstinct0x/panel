@@ -7,6 +7,8 @@ import DubSync from './units/DubSync';
 import DragRank from './units/DragRank';
 import SpanHighlight from './units/SpanHighlight';
 import ImageRating from './units/ImageRating';
+import PromptRewritePair from './units/PromptRewritePair';
+import ProcessOutputRating from './units/ProcessOutputRating';
 import Default from './units/Default';
 import type { RendererUnit } from './units/types';
 
@@ -343,6 +345,16 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
       break;
     case 'ai_output_rating':
       renderer = <ImageRating unit={unit} onAnswer={submit} disabled={tooFast} />;
+      break;
+    case 'process_output_rating':
+      renderer = <ProcessOutputRating unit={unit} onAnswer={submit} disabled={tooFast} />;
+      break;
+    case 'prompt_rewrite_pair':
+      renderer = <PromptRewritePair unit={unit} onAnswer={submit} disabled={tooFast} />;
+      break;
+    case 'skill_diff_review':
+      // diff + binary/choices → Default already does this well
+      renderer = <Default unit={unit} onAnswer={submit} disabled={tooFast} />;
       break;
     default:
       renderer = <Default unit={unit} onAnswer={submit} disabled={tooFast} />;

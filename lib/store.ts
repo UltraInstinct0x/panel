@@ -26,7 +26,11 @@ export type UnitType =
   | 'dub_sync'
   | 'drag_to_rank'
   | 'span_highlight'
-  | 'ai_output_rating';
+  | 'ai_output_rating'
+  // WS-V: agent-feedback-loop unit types
+  | 'skill_diff_review'
+  | 'process_output_rating'
+  | 'prompt_rewrite_pair';
 
 export type UnitPool = 'public' | 'technical';
 

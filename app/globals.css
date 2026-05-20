@@ -1120,3 +1120,42 @@ nav.topbar .brand {
 .u-airating-meh    { border-color: rgba(250,204,21,0.30); }
 .u-airating-broken { border-color: rgba(251,113,133,0.30); }
 .u-airating-spam   { border-color: rgba(244,63,94,0.40); }
+
+/* prompt_rewrite_pair */
+.u-prp { display: flex; flex-direction: column; gap: 10px; }
+.u-prp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .u-prp-grid { grid-template-columns: 1fr; } }
+.u-prp-card {
+  display: flex; flex-direction: column; gap: 8px; padding: 14px;
+  background: var(--surface, #0e0f12); border: 1px solid var(--border, #23262d);
+  border-radius: 10px; text-align: left; cursor: pointer; color: inherit;
+  transition: border-color .12s, background .12s;
+}
+.u-prp-card:hover:not(:disabled) { border-color: var(--accent, #67e8f9); background: #14171c; }
+.u-prp-card:focus-visible { outline: 2px solid var(--accent, #67e8f9); outline-offset: 2px; }
+.u-prp-card:disabled { opacity: .5; cursor: not-allowed; }
+.u-prp-tag {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--accent, #67e8f9); font-weight: 600;
+}
+.u-prp-text { font-size: 14px; line-height: 1.45; color: var(--text, #e5e7eb); }
+.u-prp-tie {
+  align-self: center; margin-top: 2px; padding: 6px 14px;
+  background: transparent; border: 1px solid var(--border, #23262d);
+  border-radius: 6px; color: var(--muted, #94a3b8); cursor: pointer;
+  font-size: 12px;
+}
+.u-prp-tie:hover:not(:disabled) { color: var(--text, #e5e7eb); border-color: var(--accent, #67e8f9); }
+.u-prp-err { color: var(--muted, #94a3b8); padding: 12px; font-size: 13px; }
+
+/* process_output_rating — reuses .u-airating-* buttons, only the frame is new */
+.u-por-frame {
+  background: #0a0b0e; border: 1px solid var(--border, #23262d);
+  border-radius: 8px; padding: 10px 12px; max-height: 240px; overflow: auto;
+}
+.u-por-text {
+  margin: 0; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; line-height: 1.5; color: var(--text, #e5e7eb);
+  white-space: pre-wrap; word-break: break-word;
+}
