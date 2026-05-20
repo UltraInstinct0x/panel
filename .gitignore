@@ -12,3 +12,4 @@ data/*.db-wal
 # typescript incremental build info
 *.tsbuildinfo
 data/backups/
+__pycache__/
