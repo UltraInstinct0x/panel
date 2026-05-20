@@ -3,20 +3,15 @@
 import Link from 'next/link';
 import Nav from './_components/Nav';
 
-const SNIPPET = `<script src="https://panel.goku.codes/sdk.js" async></script>
-<div data-panel data-operator-key="op_xxx"></div>
+const SDK_SNIPPET = `import { createClient } from 'panel-sdk';
 
-// on success: a token. verify server-side.
-fetch('https://panel.goku.codes/api/verify', {
-  method: 'POST',
-  headers: { 'x-operator-key': process.env.PANEL_KEY },
-  body: JSON.stringify({ token })
-})`;
+const panel = createClient({ siteKey: process.env.PANEL_KEY!, secret: process.env.PANEL_SECRET! });
+await panel.emitProcessOutput({ kind: 'reply', content: agentReply, context: prompt });`;
 
 export default function Home() {
   const copy = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(SNIPPET).catch(() => {});
+      navigator.clipboard.writeText(SDK_SNIPPET).catch(() => {});
     }
   };
 
@@ -28,178 +23,212 @@ export default function Home() {
       <section className="hero">
         <div className="container">
           <span className="hero-eyebrow">proof of concept · alpha</span>
-          <h1>the captcha that pays you back in data.</h1>
+          <h1>proof-of-humanity that produces signal.</h1>
           <p className="hero-sub">
-            visitors prove they&apos;re human by judging one piece of agent output.
-            the judgment goes back to the operator as preference data. recaptcha trains
-            google&apos;s self-driving cars on your visitors. panel trains your own systems.
+            three layers. one rater pool. visitors solve a taste captcha (L1),
+            operators ship agent outputs for humans to judge (L2), domain experts
+            review the high-stakes stuff (L3). the work is the proof. the proof is the dataset.
           </p>
           <div className="hero-ctas">
-            <Link href="/demo/gate" className="btn btn-primary">try the gate</Link>
-            <a href="#embed" className="btn">see the embed</a>
+            <Link href="/how-it-works" className="btn btn-primary">how it works</Link>
+            <Link href="/demo/c0-c3" className="btn">try the gate</Link>
+            <a href="#emitter" className="btn btn-ghost">see the sdk</a>
           </div>
 
           <div className="live-frame">
             <div className="live-iframe-wrap">
-              <iframe src="/embed" loading="lazy" title="live panel widget" />
+              <iframe src="/embed" loading="lazy" title="L1: live taste captcha" />
             </div>
             <div className="live-caption">
               <span className="live-dot" />
-              live · running now
+              L1 live · running now
             </div>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="section">
+      {/* LADDER */}
+      <section className="section" id="ladder">
         <div className="container">
-          <div className="section-eyebrow">how it works</div>
-          <h2 className="section-title">three seconds. one judgment. one row of preference data.</h2>
+          <div className="section-eyebrow">the ladder</div>
+          <h2 className="section-title">three layers of human signal, one shared rater pool.</h2>
           <p className="section-sub">
-            no traffic-light squares, no rotating cubes. visitors pick the better headline,
-            flag the off-sync dub, rank three replies. the answer is the proof.
+            captcha at the bottom, expert review at the top. raters move up the ladder
+            as their trust score goes up. operators pick the layer that matches their stakes.
           </p>
 
           <div className="grid-3">
             <div className="step-card">
-              <div className="step-num">01</div>
-              <div className="step-title">the work is the proof</div>
+              <div className="step-num">L1 · taste captcha</div>
+              <div className="step-title">replaces recaptcha &amp; turnstile.</div>
               <p className="step-body">
-                one taste judgment, three seconds. solving it produces a labelled row
-                you own. the friction becomes the dataset.
+                visitors prove they&apos;re human by judging one piece of agent output —
+                pick the better headline, flag the off-sync dub, rank a vs b.
+                three seconds, taste/aesthetic friction, &apos;solve&apos; verb.
+                the answer is the proof. the proof becomes a labelled row.
               </p>
             </div>
             <div className="step-card">
-              <div className="step-num">02</div>
-              <div className="step-title">the pool is split so flagships can&apos;t farm it</div>
+              <div className="step-num">L2 · agent-output rating</div>
+              <div className="step-title">b2b feedback loop for agent stacks.</div>
               <p className="step-body">
-                public pool is taste, sarcasm, dub-sync, perception. things a frontier
-                LLM cannot reliably solve in 2026. technical judgments stay paid-tier.
+                operators emit agent outputs, skill diffs, process outputs.
+                trusted raters &apos;judge&apos; them — pairwise, rubric, free-form.
+                preference rows flow back to the operator, signed, deduped, scored.
+                the loop closes without a labelling vendor in the middle.
               </p>
             </div>
             <div className="step-card">
-              <div className="step-num">03</div>
-              <div className="step-title">defense-in-depth, not a checkbox</div>
+              <div className="step-num">L3 · expert review</div>
+              <div className="step-title">domain specialists for high-stakes signal.</div>
               <p className="step-body">
-                behavioral floor, engagement window, honeypot units, opaque scoring.
-                the token issues now; the probability resolves once humans agree.
+                regulated pros, medical, legal, trades. credentialed reviewers
+                gated behind verification. paid per unit, audit trail per row.
+                for outputs where a wrong rating costs more than the rating.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* WHAT VISITORS SEE */}
+      {/* WEDGE */}
       <section className="section">
         <div className="container">
-          <div className="section-eyebrow">what visitors see</div>
-          <h2 className="section-title">three unit shapes. one widget.</h2>
+          <div className="section-eyebrow">the wedge</div>
+          <h2 className="section-title">recaptcha extracts free training data. panel routes signal to operators who pay raters.</h2>
           <p className="section-sub">
-            the public pool rotates across formats so the verifier never feels repetitive
-            and the dataset stays varied.
+            same friction, opposite economics. every captcha solve is a labelled row —
+            the only question is who owns it.
           </p>
 
-          <div className="grid-3">
-            <div className="mockup">
-              <div className="bubble">oh wow, another monday. can&apos;t wait.</div>
-              <div className="bubble right" style={{ background: 'rgba(103,232,249,0.08)', borderColor: 'rgba(103,232,249,0.25)' }}>
-                sarcastic
-              </div>
-              <div className="bubble right" style={{ opacity: 0.5 }}>literal</div>
-              <div className="mockup-cap">sarcasm · pick the reading</div>
+          <div className="grid-2" style={{ marginTop: 32 }}>
+            <div className="card">
+              <h4 style={{ marginBottom: 12 }}>recaptcha · turnstile</h4>
+              <p className="step-body" style={{ marginBottom: 8 }}>
+                visitors label google&apos;s self-driving data for free.
+              </p>
+              <p className="step-body" style={{ marginBottom: 8 }}>
+                operator gets a yes/no token. the dataset goes to mountain view.
+              </p>
+              <p className="step-body" style={{ margin: 0 }}>
+                rater compensation: zero.
+              </p>
             </div>
-
-            <div className="mockup">
-              <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
-                <div className="tcard">
-                  <div style={{ fontWeight: 590, marginBottom: 6 }}>option a</div>
-                  <div style={{ color: 'var(--fg-dim)', fontSize: 12 }}>
-                    crisp, balanced, a little smoky on the finish.
-                  </div>
-                </div>
-                <div className="tcard" style={{ borderColor: 'rgba(103,232,249,0.3)' }}>
-                  <div style={{ fontWeight: 590, marginBottom: 6, color: 'var(--accent)' }}>option b</div>
-                  <div style={{ color: 'var(--fg-dim)', fontSize: 12 }}>
-                    bright, citrus-forward, snappier mouthfeel.
-                  </div>
-                </div>
-              </div>
-              <div className="mockup-cap">taste · rank a vs b</div>
-            </div>
-
-            <div className="mockup">
-              <div className="video-frame" />
-              <div className="mockup-cap">dub-sync · flag the drift</div>
+            <div className="card" style={{ borderColor: 'rgba(103,232,249,0.3)' }}>
+              <h4 style={{ marginBottom: 12, color: 'var(--accent)' }}>panel</h4>
+              <p className="step-body" style={{ marginBottom: 8 }}>
+                visitors judge the operator&apos;s own agent output.
+              </p>
+              <p className="step-body" style={{ marginBottom: 8 }}>
+                operator gets a yes/no token <em>and</em> the labelled row.
+              </p>
+              <p className="step-body" style={{ margin: 0 }}>
+                rater compensation: balance accrues. paid-train coming.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* DASHBOARD SCREENSHOT */}
-      <section className="section">
+      {/* EMITTER PIPELINE */}
+      <section className="section" id="emitter">
         <div className="container">
-          <div className="section-eyebrow">operator surface</div>
-          <h2 className="section-title">a live dashboard, not a billing page.</h2>
+          <div className="section-eyebrow">emitter pipeline</div>
+          <h2 className="section-title">three lines. no hmac dance.</h2>
           <p className="section-sub">
-            operators see solve-rate, bot-flag rate, dataset growth, top raters.
-            every column links back to the unit, the judgment, the trust score.
+            the sdk handles signing, batching, and the ingest contract.
+            operators emit. adapters fan out. raters judge. signal returns.
           </p>
 
-          <div className="screenshot-wrap">
-            <img src="/screenshots/dashboard.png" alt="panel dashboard" />
-          </div>
-        </div>
-      </section>
-
-      {/* DROP IN */}
-      <section className="section" id="embed">
-        <div className="container">
-          <div className="section-eyebrow">drop in</div>
-          <h2 className="section-title">two tags. one verify call.</h2>
-          <p className="section-sub">
-            the iframe widget at <code>/embed</code> works today. the script tag is the
-            alpha shape — PoC, not GA. verify the token server-side with your operator key.
-          </p>
-
-          <div className="code-wrap">
+          <div className="code-wrap" style={{ marginBottom: 32 }}>
             <div className="code-wrap-head">
-              <span>installation</span>
+              <span>panel-sdk · typescript</span>
               <button className="copy-btn" onClick={copy}>copy</button>
             </div>
-            <pre>{SNIPPET}</pre>
+            <pre>{SDK_SNIPPET}</pre>
+          </div>
+
+          <div className="grid-3">
+            <div className="step-card">
+              <div className="step-num">shipping</div>
+              <div className="step-title">modal dev-gen</div>
+              <p className="step-body">
+                serverless agent runners emit process outputs straight from the function.
+                hmac-signed in the worker, no proxy.
+              </p>
+            </div>
+            <div className="step-card">
+              <div className="step-num">incoming · v6b</div>
+              <div className="step-title">comfyui · replicate</div>
+              <p className="step-body">
+                image/video generation pipelines. webhook adapter writes media_origin
+                + media_quality units on completion.
+              </p>
+            </div>
+            <div className="step-card">
+              <div className="step-num">incoming · v6c</div>
+              <div className="step-title">elevenlabs</div>
+              <p className="step-body">
+                tts/voice clone outputs into dub-sync and naturalness rating units.
+                same emit shape, different rubric.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* WHERE IT IS TODAY + WHO */}
+      {/* PAID-TRAIN TEASE */}
+      <section className="section">
+        <div className="container">
+          <div className="section-eyebrow">paid-train · request access</div>
+          <h2 className="section-title">rater balance → tokens → finetune → deploy.</h2>
+          <p className="section-sub" style={{ maxWidth: 720 }}>
+            raters earn by judging. balances convert to inference credits and finetune
+            runs against the dataset they helped label. operators close the loop on the
+            same surface that produced it — judge, train, deploy, judge again. no
+            data-broker, no labelling vendor, no separate gpu account. private alpha,
+            small cohort.
+          </p>
+          <div className="hero-ctas" style={{ marginTop: 24, justifyContent: 'flex-start' }}>
+            <a href="mailto:g_guney@icloud.com?subject=panel%20paid-train%20access" className="btn btn-primary">
+              request access
+            </a>
+            <Link href="/how-it-works" className="btn btn-ghost">read the loop</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* WHERE IT IS TODAY */}
       <section className="section">
         <div className="container">
           <div className="grid-2">
             <div>
               <div className="section-eyebrow">where it is today</div>
-              <h3 style={{ marginBottom: 16 }}>shipped in the PoC</h3>
+              <h3 style={{ marginBottom: 16 }}>shipped in the poc</h3>
               <div className="pill-row">
+                <span className="badge">L1 live · /embed</span>
                 <span className="badge">persistent sqlite</span>
                 <span className="badge">D12 pool split</span>
                 <span className="badge">behavioral signals</span>
                 <span className="badge">honeypot units</span>
                 <span className="badge">operator-key auth</span>
-                <span className="badge badge-warn">0 paying customers</span>
+                <span className="badge">panel-sdk · ts</span>
+                <span className="badge">modal dev-gen adapter</span>
+                <span className="badge badge-warn">no paid-train yet</span>
                 <span className="badge badge-warn">no SOC 2</span>
-                <span className="badge badge-warn">no BAA</span>
               </div>
             </div>
 
             <div>
-              <div className="section-eyebrow">who this is for</div>
-              <h3 style={{ marginBottom: 16 }}>the wedge</h3>
+              <div className="section-eyebrow">try it</div>
+              <h3 style={{ marginBottom: 16 }}>live surfaces</h3>
               <div className="pill-row">
-                <span className="badge">indie ticketing</span>
-                <span className="badge">paid newsletters</span>
-                <span className="badge">DTC shopify (non-plus)</span>
-                <span className="badge">seed telemed</span>
-                <span className="badge">direct-stripe creators</span>
+                <Link href="/demo/c0-c3" className="badge badge-accent">demo · c0-c3 gate</Link>
+                <Link href="/embed" className="badge badge-accent">L1 widget</Link>
+                <Link href="/onboard" className="badge badge-accent">operator onboard</Link>
+                <Link href="/dashboard" className="badge">dashboard</Link>
+                <Link href="/operator" className="badge">operator console</Link>
+                <Link href="/docs" className="badge">docs</Link>
               </div>
             </div>
           </div>
@@ -210,9 +239,15 @@ export default function Home() {
         panel · proof of concept ·{' '}
         <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer">github</a>
         {' · '}
+        <Link href="/how-it-works">how it works</Link>
+        {' · '}
         <Link href="/docs">docs</Link>
         {' · '}
-        <Link href="/demo/gate">demo</Link>
+        <Link href="/demo/c0-c3">demo</Link>
+        {' · '}
+        <Link href="/privacy">privacy</Link>
+        {' · '}
+        <Link href="/terms">terms</Link>
       </footer>
     </>
   );
