@@ -7,7 +7,72 @@ export default function Home() {
       <Nav />
       <div className="container">
         <h1>panel</h1>
-        <p className="muted">captcha-shaped feedback layer for agent outputs. visitors prove they&apos;re human by judging one tiny piece of agent work. operators get a captcha. agent stacks get continuous preference data.</p>
+        <p className="muted">
+          a captcha you don&apos;t hate. visitors prove they&apos;re human by judging one piece of agent output.
+          the judgment goes back to the operator as preference data. recaptcha trains google&apos;s self-driving cars
+          on your visitors. panel trains your own systems.
+        </p>
+
+        <div style={{ marginTop: 16 }}>
+          <Link href="/demo/gate" className="badge badge-accent" style={{ marginRight: 8 }}>
+            try the gate →
+          </Link>
+          <Link href="/operator" className="badge">operator view</Link>
+        </div>
+
+        <hr />
+
+        <h3>three reasons this isn&apos;t the captcha you hate</h3>
+        <div className="grid-2">
+          <div className="card">
+            <strong>1. the work is the proof</strong>
+            <p className="muted" style={{ margin: '8px 0 0' }}>
+              no traffic-light squares. one taste judgment — pick the better headline, flag the off-sync dub,
+              rank three replies. takes 3 seconds. the answer is a row of preference data you own.
+            </p>
+          </div>
+          <div className="card">
+            <strong>2. the pool is split so flagships can&apos;t farm it</strong>
+            <p className="muted" style={{ margin: '8px 0 0' }}>
+              public captcha pool is taste, sarcasm, dub-sync, voice-naturalness, perception. things a frontier LLM
+              cannot reliably solve in 2026. technical judgments (code, traces, hallucination calls) never touch
+              anonymous raters — they flow through a paid trust-tier pipeline. this is the wedge. see D12.
+            </p>
+          </div>
+          <div className="card">
+            <strong>3. defense-in-depth, not just a checkbox</strong>
+            <p className="muted" style={{ margin: '8px 0 0' }}>
+              behavioral floor (mouse, dwell, focus entropy). engagement window. honeypot units where the
+              obvious-LLM-answer is wrong by design. opaque scoring — the token issues unconditionally, the
+              probability resolves hours later once humans agree. bots can&apos;t tight-loop the verifier.
+            </p>
+          </div>
+          <div className="card">
+            <strong>+ the compliance envelope ships standalone</strong>
+            <p className="muted" style={{ margin: '8px 0 0' }}>
+              scrubber-proxy sits in front of the unit pool. GDPR / KVKK / HIPAA-aware redaction before any
+              judgment leaves your stack. use the proxy on its own if you want.
+            </p>
+          </div>
+        </div>
+
+        <hr />
+
+        <h3>drop in</h3>
+        <pre style={{ background: 'var(--bg-2, #0e0e0e)', padding: 16, borderRadius: 6, overflow: 'auto', fontSize: 12 }}>
+{`<script src="https://panel.goku.codes/sdk.js" async></script>
+<div data-panel data-operator-key="op_xxx"></div>
+
+// on success: a token. verify server-side.
+fetch('https://panel.goku.codes/api/verify', {
+  method: 'POST',
+  headers: { 'x-operator-key': process.env.PANEL_KEY },
+  body: JSON.stringify({ token })
+})`}
+        </pre>
+        <p className="faint" style={{ fontSize: 12 }}>
+          the iframe widget at <code>/embed</code> works today. the script tag is the alpha shape. PoC, not GA.
+        </p>
 
         <hr />
 
@@ -18,15 +83,15 @@ export default function Home() {
               <strong>/demo/gate</strong>
               <span className="badge badge-accent">start here</span>
             </div>
-            <p className="muted" style={{ margin: '8px 0 0' }}>a fake signup form embedding the panel widget as a captcha. judge one unit, get through.</p>
+            <p className="muted" style={{ margin: '8px 0 0' }}>fake signup form. judge one unit, get through.</p>
           </Link>
 
-          <Link href="/widget?embed=true" className="card">
+          <Link href="/embed" className="card">
             <div className="row-between">
-              <strong>/widget</strong>
-              <span className="badge">embeddable</span>
+              <strong>/embed</strong>
+              <span className="badge">iframe SDK</span>
             </div>
-            <p className="muted" style={{ margin: '8px 0 0' }}>the widget itself. iframe-able. served standalone for SDK preview.</p>
+            <p className="muted" style={{ margin: '8px 0 0' }}>postMessage handshake. embeddable today.</p>
           </Link>
 
           <Link href="/dashboard" className="card">
@@ -34,7 +99,7 @@ export default function Home() {
               <strong>/dashboard</strong>
               <span className="badge">rater view</span>
             </div>
-            <p className="muted" style={{ margin: '8px 0 0' }}>your recent judgments + trust score + earnings (mock).</p>
+            <p className="muted" style={{ margin: '8px 0 0' }}>recent judgments, trust score, agreement.</p>
           </Link>
 
           <Link href="/operator" className="card">
@@ -42,27 +107,36 @@ export default function Home() {
               <strong>/operator</strong>
               <span className="badge">operator view</span>
             </div>
-            <p className="muted" style={{ margin: '8px 0 0' }}>embed code, traffic, dataset preview, attestation envelope.</p>
+            <p className="muted" style={{ margin: '8px 0 0' }}>operator key, embed snippet, traffic, dataset preview.</p>
           </Link>
         </div>
 
         <hr />
 
-        <h3>five unit types in the pool</h3>
+        <h3>where it is today</h3>
         <ul className="muted">
-          <li><strong>pairwise trace</strong> — which agent run looks better for this prompt?</li>
-          <li><strong>step validity</strong> — does this single tool call make sense given the goal?</li>
-          <li><strong>skill diff vote</strong> — is this proposed skill edit an improvement?</li>
-          <li><strong>hallucination flag</strong> — does this claim look fabricated?</li>
-          <li><strong>taste rank</strong> — rank these N outputs by quality.</li>
+          <li>persistent sqlite. judgments survive restart.</li>
+          <li>D12 pool split implemented. public pool = taste, dub-sync, sarcasm, perception.</li>
+          <li>behavioral signal collection (mouse, dwell, focus) per judgment.</li>
+          <li>honeypot units seeded. operator-key auth on verify.</li>
+          <li>0 paying customers. pre-launch, design-partner pricing only.</li>
+          <li>no SOC 2. no BAA. don&apos;t put it in front of PHI yet.</li>
         </ul>
 
         <hr />
 
-        <h3>under the hood</h3>
-        <p className="muted">in-memory store, no database. seed pool of ~30 mock units. trust score is a toy ELO-shaped number that moves on agreement with the (mock) gold set. <strong>none of this is the real system</strong> — it&apos;s the shape of the user-facing surfaces so you can feel the loop. real backend lives in the private design vault.</p>
+        <h3>who this is for</h3>
+        <ul className="muted">
+          <li>indie ticketing — anti-scalping where verified-fan is already defeated.</li>
+          <li>paid newsletter writers — bot-sub deliverability tanking your open rates.</li>
+          <li>DTC shopify (non-plus) — card-testing bots polluting your meta pixel.</li>
+          <li>seed-stage telemed — OTP toll-fraud before the SMS fires.</li>
+          <li>creators on direct-stripe — chargeback evidence packet at purchase confirm.</li>
+        </ul>
 
-        <p className="faint" style={{ marginTop: 32, fontSize: 11 }}>panel · proof of concept · <a href="https://github.com/UltraInstinct0x/panel">github</a></p>
+        <p className="faint" style={{ marginTop: 32, fontSize: 11 }}>
+          panel · proof of concept · <a href="https://github.com/UltraInstinct0x/panel">github</a>
+        </p>
       </div>
     </>
   );
