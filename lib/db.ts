@@ -103,7 +103,20 @@ function openDb(): Database.Database {
   try { d.exec(`ALTER TABLE units ADD COLUMN trace_id TEXT`); } catch {}
   try { d.exec(`ALTER TABLE units ADD COLUMN parent_span_path TEXT`); } catch {}
   try { d.exec(`CREATE INDEX IF NOT EXISTS idx_units_trace ON units(trace_id)`); } catch {}
+  // WS-P: per-site tier policy (JSON). nullable → falls back to DEFAULT_POLICY.
+  try { d.exec(`ALTER TABLE site_keys ADD COLUMN tier_policy TEXT`); } catch {}
   return d;
+}
+
+// ---------- WS-P: site_keys.tier_policy ----------
+
+export function getTierPolicyJson(siteKey: string): string | null {
+  const row = db.prepare('SELECT tier_policy FROM site_keys WHERE site_key = ?').get(siteKey) as { tier_policy: string | null } | undefined;
+  return row?.tier_policy ?? null;
+}
+
+export function setTierPolicyJson(siteKey: string, policyJson: string | null): void {
+  db.prepare('UPDATE site_keys SET tier_policy = ? WHERE site_key = ?').run(policyJson, siteKey);
 }
 
 // ---------- jti replay protection ----------
