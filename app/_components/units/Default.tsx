@@ -12,18 +12,26 @@ function renderDiff(diff: string) {
 // kept reasonably polished — code blocks render as monospace cards, diff inline,
 // binary as two big pills, choices as ranked cards.
 export default function Default({ unit, onAnswer, disabled }: RendererProps) {
-  const codey = !!(unit.choices && unit.choices.some(c => /\n|def |function |\$|=>/.test(c.text)));
+  const norm = (s: string) => String(s || '').trim().toLowerCase().replace(/^[-✓✗\s]+/, '');
+  const uniqueChoices = (unit.choices || []).filter((c, i, arr) => {
+    const t = norm(c.text);
+    return !!t && arr.findIndex(x => norm(x.text) === t) === i;
+  });
+  const codey = !!(uniqueChoices.length && uniqueChoices.some(c => /\n|def |function |\$|=>/.test(c.text)));
+  const binaryLikeChoices = uniqueChoices.length > 0 && uniqueChoices.length <= 2;
+  const showChoices = uniqueChoices.length > 0 && !(unit.binary && binaryLikeChoices);
+
   return (
     <div className="u-def">
       {unit.diff && (
         <pre className="u-def-diff">{renderDiff(unit.diff)}</pre>
       )}
 
-      {unit.choices && (
+      {showChoices && (
         <div className={codey ? 'u-def-cards u-def-cards--code' : 'u-def-cards'}>
-          {unit.choices.map(c => (
+          {uniqueChoices.map((c, idx) => (
             <button
-              key={c.label}
+              key={`${c.label}-${idx}`}
               className="u-def-card"
               disabled={disabled}
               onClick={() => onAnswer(c.label)}
