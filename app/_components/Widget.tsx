@@ -23,17 +23,22 @@ function getRaterId(): string {
   return id;
 }
 
+type WidgetMode = 'captcha' | 'rater';
+
 type WidgetProps = {
   onSolved?: (result: { trust: number; earned_cents: number; token: string }) => void;
   siteKey?: string;
   pool?: 'public' | 'technical';
+  // captcha = embedded as a gate. one solve and you're done; no "solve another".
+  // rater   = dashboard / standalone grind page. show "solve another".
+  mode?: WidgetMode;
 };
 
 const ENGAGEMENT_MIN_MS = 2500;
 const MOUSE_THROTTLE_MS = 50;
 const FOCUS_POLL_MS = 250;
 
-export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public' }: WidgetProps) {
+export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public', mode = 'captcha' }: WidgetProps) {
   const [unit, setUnit] = useState<Unit | null>(null);
   const [loading, setLoading] = useState(true);
   const [shownAt, setShownAt] = useState<number>(0);
@@ -191,6 +196,27 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
     }
   };
 
+  const retrySameUnit = useCallback(() => {
+    // anti-reroll: a failed attempt must not unlock a fresh, easier unit.
+    // we reseat the existing unit, reset the engagement clock + behavioral
+    // collector, and let the visitor try again on the *same* question.
+    if (!unit) { load(); return; }
+    setSolved(null);
+    setError(null);
+    setOrder([]);
+    setSpanSel(null);
+    resetBehavioral();
+    setShownAt(Date.now());
+    if (unit.type === 'drag_to_rank' && Array.isArray((unit as any).items)) {
+      const labels = (unit as any).items.map((i: any) => i.label);
+      for (let i = labels.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [labels[i], labels[j]] = [labels[j], labels[i]];
+      }
+      setOrder(labels);
+    }
+  }, [unit, load, resetBehavioral]);
+
   const skip = () => { setSkipCount(s => s + 1); load(); };
 
   // dwell timer for header (MM:SSs)
@@ -243,8 +269,8 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
           <div className="w2-fail">
             <div className="w2-fail-glyph w2-fail-glyph--warn" aria-hidden>!</div>
             <div className="w2-fail-title">that wasn’t quite it</div>
-            <div className="w2-fail-msg">that question had a known answer. try another to keep going.</div>
-            <button className="u-submit" onClick={load}>try another</button>
+            <div className="w2-fail-msg">that question had a known answer. try again on the same one.</div>
+            <button className="u-submit" onClick={retrySameUnit}>try again</button>
           </div>
         </div>
       );
@@ -256,8 +282,8 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
           <div className="w2-fail">
             <div className="w2-fail-glyph w2-fail-glyph--warn" aria-hidden>⏱</div>
             <div className="w2-fail-title">slow down a second</div>
-            <div className="w2-fail-msg">give it a moment of real attention. another question coming up.</div>
-            <button className="u-submit" onClick={load}>next question</button>
+            <div className="w2-fail-msg">give it a moment of real attention. same question, try again.</div>
+            <button className="u-submit" onClick={retrySameUnit}>try again</button>
           </div>
         </div>
       );
@@ -283,7 +309,9 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
           </div>
           <div className="w2-ok-meta">earned ${(solved.earned_cents / 100).toFixed(2)} · token issued</div>
           <div className="w2-ok-token">{solved.token.slice(0, 32)}…</div>
-          <button className="u-submit" onClick={load}>solve another →</button>
+          {mode === 'rater' && (
+            <button className="u-submit" onClick={load}>solve another →</button>
+          )}
         </div>
       </div>
     );

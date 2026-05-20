@@ -122,17 +122,14 @@
       if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
       pop = null;
       iframe = null;
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onDocClick, true);
       window.removeEventListener('resize', position);
       window.removeEventListener('scroll', position, true);
     }
-    function onKey(e) { if (e.key === 'Escape') close(); }
-    function onDocClick(e) {
-      if (!pop) return;
-      if (pop.contains(e.target) || pill.contains(e.target)) return;
-      close();
-    }
+    // NB: no Esc-to-close, no outside-click-to-close, no second-click-to-close.
+    // a captcha that lets the visitor abort+reroll a fresh question on every
+    // outside click is a free way to farm easier questions, so once the popover
+    // is open we keep it open until it resolves (solved → fade) or until the
+    // host page calls widget.close() programmatically. lock-in is the point.
     function position() {
       if (!pop) return;
       var r = pill.getBoundingClientRect();
@@ -168,18 +165,13 @@
       document.body.appendChild(pop);
       // measure then position
       requestAnimationFrame(position);
-      document.addEventListener('keydown', onKey);
-      // outside-click after this current click finishes
-      setTimeout(function () {
-        document.addEventListener('mousedown', onDocClick, true);
-      }, 0);
       window.addEventListener('resize', position);
       window.addEventListener('scroll', position, true);
     }
 
     pill.addEventListener('click', function () {
       if (widget.token) return; // already solved
-      if (pop) { close(); return; }
+      if (pop) return;          // already open — no toggle-close (anti-reroll)
       open();
     });
 

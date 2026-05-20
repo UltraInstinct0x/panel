@@ -8,7 +8,7 @@ export default function EmbedPage({ searchParams }: { searchParams: { site_key?:
   const pool = (searchParams.pool || 'public') as 'public' | 'technical';
   return (
     <div style={{ padding: 8, background: 'transparent' }}>
-      <Widget siteKey={siteKey} pool={pool} />
+      <Widget siteKey={siteKey} pool={pool} mode="captcha" />
     </div>
   );
 }
