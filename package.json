@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3015 -H 127.0.0.1",
     "lint": "next lint",
-    "test:scrubber-gate": "node __tests__/scrubber-gate.test.ts"
+    "test:scrubber-gate": "node __tests__/scrubber-gate.test.ts",
+    "test:operator-mint": "tsx __tests__/operator-mint.test.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",

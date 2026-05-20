@@ -105,6 +105,32 @@ function openDb(): Database.Database {
   try { d.exec(`CREATE INDEX IF NOT EXISTS idx_units_trace ON units(trace_id)`); } catch {}
   // WS-P: per-site tier policy (JSON). nullable → falls back to DEFAULT_POLICY.
   try { d.exec(`ALTER TABLE site_keys ADD COLUMN tier_policy TEXT`); } catch {}
+  // WS-U: db-stored ingest secret hash (so we can mint keys at runtime
+  // without restarting the service to bake them into env). env-vars stay
+  // supported as a higher-priority fallback for first-party keys.
+  try { d.exec(`ALTER TABLE site_keys ADD COLUMN ingest_secret_hash TEXT`); } catch {}
+  try { d.exec(`ALTER TABLE site_keys ADD COLUMN owner_email TEXT`); } catch {}
+  try { d.exec(`ALTER TABLE site_keys ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`); } catch {}
+  // WS-U: pending operator applications queue.
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS operator_applications (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      org TEXT,
+      intended_use TEXT NOT NULL,
+      requested_tier TEXT NOT NULL DEFAULT 'free',
+      scrubber_required INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected'
+      created_at INTEGER NOT NULL,
+      decided_at INTEGER,
+      decided_by TEXT,
+      minted_site_key TEXT,
+      rejection_reason TEXT,
+      meta_json TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_op_apps_status ON operator_applications(status, created_at);
+  `);
   return d;
 }
 
