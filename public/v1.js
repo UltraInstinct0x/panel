@@ -241,6 +241,9 @@
       widget.info = { trust: trust, tier_used: tier_used };
       widget.tier_used = tier_used;
       pill.setAttribute('data-mode', 'c0'); // reuse c0 cursor — non-interactive once verified
+      // ensure pill reflects verified state for C1/C2/C3 lanes (C0 already did this in playC0Animation)
+      pill.setAttribute('data-state', 'verified');
+      try { pill.querySelector('.pnl-label').textContent = 'verified'; } catch (_) {}
       try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: token, trust: trust, tier_used: tier_used }); } catch (_) {}
       try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: token, trust: trust, tier_used: tier_used }, bubbles: true })); } catch (_) {}
     }
