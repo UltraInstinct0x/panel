@@ -61,3 +61,38 @@ jobs:
       - name: server log on failure
         if: failure()
         run: tail -200 server.log || true
+
+  # WS-T: prove kysely query layer works on postgres too. sqlite stays in prod.
+  db-kysely-pg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PANEL_PG_TEST_PORT: 5433
+      # tell the pg test to skip the docker run path; service container is already up.
+      PANEL_PG_TEST_SKIP_DOCKER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: install
+        run: pnpm install --frozen-lockfile=false
+      - name: rebuild native deps
+        run: pnpm rebuild better-sqlite3
+      - name: kysely sqlite smoke
+        run: pnpm exec tsx __tests__/db-kysely.test.ts
+      - name: kysely pg smoke (service container on 5433)
+        run: pnpm exec tsx __tests__/db-kysely-pg.test.ts

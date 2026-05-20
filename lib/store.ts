@@ -1,5 +1,12 @@
 // sqlite-backed store. API-compatible with the prior in-memory PoC.
+// WS-T: read paths migrated to kysely (queries.ts). writes that need a tx
+// (recordJudgment) still use raw db for the synchronous transaction guarantee.
 import { db } from './db';
+import {
+  listUnitsByPool,
+  getUnitJson,
+  listSeenUnitIdsByRater,
+} from './queries';
 import { seedUnitsAll } from './seed_units';
 import {
   maybeSubstituteHoneypot,

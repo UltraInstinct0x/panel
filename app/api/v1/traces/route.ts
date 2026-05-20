@@ -4,7 +4,8 @@
 // async: blob > 100KB → 202 + GET /v1/traces/[id]
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db, scrubberRequiredFor } from '@/lib/db';
+import { scrubberRequiredFor } from '@/lib/db';
+import { insertUnitsBulk, upsertTrace, updateTraceStatus } from '@/lib/queries';
 import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
 import { logAccess } from '@/lib/logger';
 import { audit } from '@/lib/audit';
@@ -52,37 +53,41 @@ async function runSplitterAndPersist(traceId: string, body: any): Promise<SplitO
   }
 
   const all = [...structuralEmit, ...llmEmit];
-  const ins = db.prepare(
-    'INSERT OR REPLACE INTO units (id, json, pool, is_honeypot, created_at, trace_id, parent_span_path) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  );
+  // WS-T: migrated to kysely (queries.insertUnitsBulk)
   const now = Date.now();
   const unit_ids: string[] = [];
-  const tx = db.transaction(() => {
-    all.forEach((c, i) => {
-      // emit only types accepted by ingest pipeline (downstream may downgrade)
-      const allowedTypes = new Set([
-        'step_validity','skill_diff','hallucination_flag','pairwise_trace',
-      ]);
-      if (!allowedTypes.has(c.type as string)) return;
-      const id = `u_tr_${traceId.slice(0, 8)}_${i}_${crypto.randomBytes(3).toString('hex')}`;
-      const unit = {
-        id,
-        type: c.type,
-        pool: 'public',
-        source_agent: sourceAgent,
-        prompt_context: '',
-        question: c.payload?.question ?? '',
-        ...c.payload,
-        est_seconds: 10,
-        trace_id: traceId,
-        parent_span_path: c.parent_span_path,
-        source_token_range: c.source_token_range,
-      };
-      ins.run(id, JSON.stringify(unit), 'public', 0, now, traceId, c.parent_span_path);
-      unit_ids.push(id);
+  const allowedTypes = new Set([
+    'step_validity','skill_diff','hallucination_flag','pairwise_trace',
+  ]);
+  const rows: Parameters<typeof insertUnitsBulk>[0] = [];
+  all.forEach((c, i) => {
+    if (!allowedTypes.has(c.type as string)) return;
+    const id = `u_tr_${traceId.slice(0, 8)}_${i}_${crypto.randomBytes(3).toString('hex')}`;
+    const unit = {
+      id,
+      type: c.type,
+      pool: 'public',
+      source_agent: sourceAgent,
+      prompt_context: '',
+      question: c.payload?.question ?? '',
+      ...c.payload,
+      est_seconds: 10,
+      trace_id: traceId,
+      parent_span_path: c.parent_span_path,
+      source_token_range: c.source_token_range,
+    };
+    rows.push({
+      id,
+      json: JSON.stringify(unit),
+      pool: 'public',
+      is_honeypot: 0,
+      created_at: now,
+      trace_id: traceId,
+      parent_span_path: c.parent_span_path,
     });
+    unit_ids.push(id);
   });
-  tx();
+  await insertUnitsBulk(rows);
 
   return { unit_ids, structural_count: structuralEmit.length, llm_count, skipped_count };
 }
@@ -140,15 +145,20 @@ export async function POST(req: NextRequest) {
   const blobJson = JSON.stringify(body?.blob ?? body);
   const blobHash = sha256Hex(blobJson);
 
-  // upsert trace row
-  db.prepare(
-    `INSERT OR REPLACE INTO traces (trace_id, operator_id, source_agent, raw_blob_hash, sanitized_at, ingested_at, scrubber_attestation_jti, blob_size, status, blob_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    trace_id, siteKey, String(body?.source_agent ?? 'unknown'),
-    blobHash, Date.now(), Date.now(), attJti, blobJson.length,
-    blobJson.length > ASYNC_THRESHOLD ? 'pending' : 'done', blobJson,
-  );
+  // WS-T: upsert trace row via kysely (queries.upsertTrace)
+  await upsertTrace({
+    trace_id,
+    operator_id: siteKey,
+    source_agent: String(body?.source_agent ?? 'unknown'),
+    raw_blob_hash: blobHash,
+    sanitized_at: Date.now(),
+    ingested_at: Date.now(),
+    scrubber_attestation_jti: attJti,
+    blob_size: blobJson.length,
+    status: blobJson.length > ASYNC_THRESHOLD ? 'pending' : 'done',
+    result_json: null,
+    blob_json: blobJson,
+  });
 
   // async path: large blob → 202, run splitter in background.
   if (blobJson.length > ASYNC_THRESHOLD) {
@@ -157,11 +167,9 @@ export async function POST(req: NextRequest) {
     (async () => {
       try {
         const out = await runSplitterAndPersist(trace_id, body);
-        db.prepare(`UPDATE traces SET status='done', result_json=? WHERE trace_id=?`)
-          .run(JSON.stringify(out), trace_id);
+        await updateTraceStatus(trace_id, 'done', JSON.stringify(out));
       } catch (err: any) {
-        db.prepare(`UPDATE traces SET status='error', result_json=? WHERE trace_id=?`)
-          .run(JSON.stringify({ error: String(err?.message || err) }), trace_id);
+        await updateTraceStatus(trace_id, 'error', JSON.stringify({ error: String(err?.message || err) }));
       }
     })();
     const res = NextResponse.json({ trace_id, status: 'pending', poll: `/v1/traces/${trace_id}` }, { status: 202 });
@@ -171,8 +179,7 @@ export async function POST(req: NextRequest) {
 
   // sync path
   const out = await runSplitterAndPersist(trace_id, body);
-  db.prepare(`UPDATE traces SET status='done', result_json=? WHERE trace_id=?`)
-    .run(JSON.stringify(out), trace_id);
+  await updateTraceStatus(trace_id, 'done', JSON.stringify(out));
   audit('operator', siteKey, 'traces.ok', 'traces', trace_id, { units: out.unit_ids.length, structural: out.structural_count, llm: out.llm_count });
 
   const res = NextResponse.json({ trace_id, ...out });

@@ -11,6 +11,7 @@ import { verify, issue, scoreBehavioral } from '@/lib/attestation';
 import { getSession, bumpAttempt, deleteSession } from '@/lib/tier-session';
 import { deriveFingerprint } from '@/lib/behavioral-fingerprint';
 import { getUnit } from '@/lib/store';
+import { recordChallengeResolved } from '@/lib/operator-stats';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
 
   if (!pass) {
     if (updated.attempts >= updated.max_attempts) {
+      try { recordChallengeResolved(jti, 'hard_fail'); } catch {}
       deleteSession(jti);
       return NextResponse.json({
         success: false,
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
         message: 'human verification unavailable, contact site operator',
       }, { status: 403 });
     }
+    try { recordChallengeResolved(jti, 'retry'); } catch {}
     // D19: same unit set, same token still valid.
     const units = sess.unit_ids.map(id => getUnit(id)).filter(Boolean);
     return NextResponse.json({
@@ -101,6 +104,7 @@ export async function POST(req: NextRequest) {
     judgment_summary: { agreed_with_pool: null, latency_ms: fp.dwell_ms, honeypot_failed: false },
     scrubber_attestation: { service: 'na', rules_version: 'na', redactions: [], passed: true },
   });
+  try { recordChallengeResolved(jti, 'pass'); } catch {}
   deleteSession(jti);
   return NextResponse.json({
     success: true,

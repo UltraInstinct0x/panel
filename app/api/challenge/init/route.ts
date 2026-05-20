@@ -19,6 +19,7 @@ import { riskFromReq } from '@/lib/threat-score';
 import { pickTier, DEFAULT_POLICY, TierPolicy } from '@/lib/tier-ladder';
 import { createSession } from '@/lib/tier-session';
 import { getTierPolicyJson, getSiteKey } from '@/lib/db';
+import { recordChallengeIssued } from '@/lib/operator-stats';
 import { pickNextUnit } from '@/lib/store';
 import { issue } from '@/lib/attestation';
 
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
     scrubber_attestation: { service: 'na', rules_version: 'na', redactions: [], passed: true },
     exp_ms: 5 * 60 * 1000,
   });
+
+  // WS-Q: record issuance for operator dashboard stats.
+  try { recordChallengeIssued({ jti, site_key: siteKey, tier, pool, trust: fp.trust, risk: risk.score }); } catch {}
 
   const sess = createSession({
     id: jti,
