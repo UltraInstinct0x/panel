@@ -184,16 +184,20 @@
         widget.info = { trust: d.trust };
         pill.setAttribute('data-state', 'solved');
         pill.querySelector('.pnl-label').textContent = 'verified';
-        try { if (typeof opts.onSolved === 'function') opts.onSolved(d.token, { trust: d.trust }); } catch (_) {}
+        // public callback shape: onSolved({ token, trust }). object payload only —
+        // easier to destructure on the host side and lets us evolve fields later
+        // without reshuffling positional args.
+        try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: d.token, trust: d.trust }); } catch (_) {}
         try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: d.token, trust: d.trust }, bubbles: true })); } catch (_) {}
-        // let the user actually see the "verified" success state inside the
-        // iframe before tearing it down. linger ~1.1s, then shrink-fade close.
+        // tear down fast: the pill itself flips to "verified" green so the
+        // 520px-tall iframe lingering with a tiny success message just looks
+        // empty and asymmetric. ~450ms is enough beat to register the change.
         if (pop) {
           setTimeout(function () {
             if (!pop) return;
             pop.setAttribute('data-state', 'closing');
-            setTimeout(close, 240);
-          }, 1100);
+            setTimeout(close, 220);
+          }, 450);
         }
       }
     }
@@ -233,7 +237,7 @@
       if (d.type === 'panel:solved' && d.token) {
         widget.token = d.token;
         widget.info = { trust: d.trust };
-        try { if (typeof opts.onSolved === 'function') opts.onSolved(d.token, { trust: d.trust }); } catch (_) {}
+        try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: d.token, trust: d.trust }); } catch (_) {}
         try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: d.token, trust: d.trust }, bubbles: true })); } catch (_) {}
       }
     }
