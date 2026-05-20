@@ -285,5 +285,42 @@ function computeAgreement(unit: Unit, choice: string): boolean | null {
   return unit.gold ? choice === unit.gold : null;
 }
 
+// ---------- GDPR/KVKK: export + erasure ----------
+
+export function exportRaterData(raterId: string): {
+  rater: Rater | null;
+  judgments: Judgment[];
+  export_meta: { exported_at: number; rater_id: string; format_version: string };
+} {
+  const rater = (db.prepare('SELECT * FROM raters WHERE id = ?').get(raterId) as Rater | undefined) ?? null;
+  const judgments = listJudgments(raterId, 100000);
+  return {
+    rater,
+    judgments,
+    export_meta: {
+      exported_at: Date.now(),
+      rater_id: raterId,
+      format_version: '1',
+    },
+  };
+}
+
+// soft-delete: anonymize rater_id to deleted_<random>, zero behavioral signals on judgments.
+// keeps judgment counts intact as anonymized ML signal (Recital 26 — no longer personal data once unlinkable).
+export function eraseRater(raterId: string): { ok: boolean; new_id: string; judgments_anonymized: number } {
+  const exists = db.prepare('SELECT 1 FROM raters WHERE id = ?').get(raterId);
+  if (!exists) return { ok: false, new_id: '', judgments_anonymized: 0 };
+  const newId = `deleted_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+  const tx = db.transaction(() => {
+    db.prepare('UPDATE raters SET id = ?, bot_flag = 0 WHERE id = ?').run(newId, raterId);
+    const r = db.prepare(
+      `UPDATE judgments SET rater_id = ?, behavioral_json = NULL WHERE rater_id = ?`,
+    ).run(newId, raterId);
+    return r.changes;
+  });
+  const changes = tx() as number;
+  return { ok: true, new_id: newId, judgments_anonymized: changes };
+}
+
 // run seed on module import
 seedIfEmpty();

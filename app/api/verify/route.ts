@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from '@/lib/attestation';
 import { isJtiConsumed, consumeJti } from '@/lib/db';
+import { audit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,14 @@ export async function POST(req: NextRequest) {
   // D-hardening: replay protection. jti consumed once, then locked.
   // (verify() already rejects expired tokens — exp < now)
   if (isJtiConsumed(r.payload.jti)) {
+    audit('operator', String(r.payload.site_key || 'unknown'), 'verify.replay_rejected', 'jti_consumed', String(r.payload.jti), null);
     return NextResponse.json({ ok: false, error: 'replay' }, { status: 409 });
   }
   consumeJti(r.payload.jti, r.payload.exp);
+  audit('operator', String(r.payload.site_key || 'unknown'), 'verify.ok', 'judgments', String(r.payload.jti || ''), {
+    jti: r.payload.jti,
+    score: r.payload.rater?.behavioral_score,
+  });
 
   return NextResponse.json({ ok: true, payload: r.payload });
 }

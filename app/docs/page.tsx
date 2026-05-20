@@ -15,6 +15,7 @@ export default function DocsPage() {
           <a href="#verify">2. verify server-side</a>
           <a href="#keys">3. site keys</a>
           <a href="#raters">4. what raters see</a>
+          <a href="#compliance">5. compliance</a>
         </nav>
       </header>
 
@@ -99,6 +100,37 @@ if (!ok || honeypot_failed || score < 0.5) return res.status(403).end('blocked')
         </ul>
         <p className="muted" style={{ fontSize: 12 }}>
           technical units (code review, agent traces) never reach anonymous raters — they flow through the paid trust pipeline (D12 split).
+        </p>
+      </section>
+
+      <section id="compliance" style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: 22, marginBottom: 8 }}>5 · compliance</h2>
+        <p>
+          panel collects only pseudonymous rater data. honest posture: we implement controls, we don&apos;t claim certifications.
+          full breakdown lives in the vault under <code>(600) Work/panel/compliance/</code>.
+        </p>
+        <ul>
+          <li><Link href="/privacy">privacy policy</Link> — draft, lawyer review pending.</li>
+          <li><Link href="/terms">terms of service</Link> — draft, lawyer review pending.</li>
+          <li>
+            data export (DSAR):{' '}
+            <code>GET /api/me/export?rater_id=&lt;id&gt;</code>{' '}
+            — downloadable JSON of your judgments + profile.
+          </li>
+          <li>
+            data erasure:{' '}
+            <code>POST /api/me/delete?rater_id=&lt;id&gt;</code>{' '}
+            — anonymizes your id; aggregate ML signal preserved per GDPR Recital 26.
+          </li>
+          <li>
+            audit log: append-only sqlite table; we record verify/me/key-rotation events.
+            export available on operator request via support email.
+          </li>
+        </ul>
+        <p className="muted" style={{ fontSize: 12 }}>
+          GDPR: yes (legitimate interest for raters, contract for operators). KVKK: yes (below VERBIS threshold; cross-border consent UI planned).
+          HIPAA: no — panel is not a covered entity by default; BAA available only after design-partner #3 + counsel review.
+          do not send PHI without a signed BAA.
         </p>
       </section>
 
