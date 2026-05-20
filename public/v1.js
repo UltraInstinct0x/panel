@@ -360,12 +360,15 @@
             }).catch(function () { escalateTo('C1'); });
           });
         } else {
-          // C1+ — open popover. pill label nudges the user.
-          pill.querySelector('.pnl-label').textContent = currentTier === 'C1'
-            ? 'one question to verify' : 'verify (' + currentTier.toLowerCase() + ')';
-          // for C1 we still want a click to open (small unit), but for C2/C3
-          // it's the same — auto-open after a beat so the user sees the pill first.
-          setTimeout(function () { openPopoverWith(resp); }, 250);
+          // C1 edge-case: wait for click before opening challenge.
+          // click acts as extra passive signal; we re-init once before showing a question.
+          if (currentTier === 'C1') {
+            pill.querySelector('.pnl-label').textContent = 'tap to finish verify';
+          } else {
+            // C2/C3: open popover after a beat so user sees the pill first.
+            pill.querySelector('.pnl-label').textContent = 'verify (' + currentTier.toLowerCase() + ')';
+            setTimeout(function () { openPopoverWith(resp); }, 250);
+          }
         }
       }).catch(function () {
         // hard fallback: open inline popover with whatever the embed page renders
@@ -402,7 +405,33 @@
       if (widget.token) return;
       maybeBootstrap();
       if (pop) return;
-      // reopen existing C1/C2/C3 challenge if user closed the popover manually.
+
+      // C1 second-chance path: after explicit click, re-init once with fresher
+      // passive signals. if it downgrades to C0, auto-resolve without a question.
+      if (currentTier === 'C1') {
+        postInit({ _click_retry: 1 }).then(function (resp) {
+          if (!resp || !resp.tier) return;
+          challengeToken = resp.challenge_token;
+          raterId = resp.rater_id;
+          currentTier = resp.tier;
+          lastInitResp = resp;
+          if (currentTier === 'C0') {
+            playC0Animation(function () {
+              postResolveC0().then(function (rr) {
+                if (rr && rr.success) fireSolved(rr.token, rr.trust, 'C0');
+                else openPopoverWith(resp);
+              }).catch(function () { openPopoverWith(resp); });
+            });
+          } else {
+            openPopoverWith(resp);
+          }
+        }).catch(function () {
+          if (lastInitResp) openPopoverWith(lastInitResp);
+        });
+        return;
+      }
+
+      // reopen existing C2/C3 challenge if user closed the popover manually.
       if (lastInitResp && currentTier && currentTier !== 'C0') openPopoverWith(lastInitResp);
     });
 
