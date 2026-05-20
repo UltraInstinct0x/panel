@@ -22,7 +22,7 @@ export default function Home() {
       {/* HERO */}
       <section className="hero">
         <div className="container">
-          <span className="hero-eyebrow">proof of concept · alpha</span>
+          <span className="hero-eyebrow">live now · shipping weekly</span>
           <h1>proof-of-humanity that produces signal.</h1>
           <p className="hero-sub">
             three layers. one rater pool. visitors solve a taste captcha (L1),
@@ -177,23 +177,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PAID-TRAIN TEASE */}
+      {/* PAID-TRAIN LOOP */}
       <section className="section">
         <div className="container">
-          <div className="section-eyebrow">paid-train · request access</div>
+          <div className="section-eyebrow">paid-train loop</div>
           <h2 className="section-title">rater balance → tokens → finetune → deploy.</h2>
           <p className="section-sub" style={{ maxWidth: 720 }}>
             raters earn by judging. balances convert to inference credits and finetune
             runs against the dataset they helped label. operators close the loop on the
             same surface that produced it — judge, train, deploy, judge again. no
-            data-broker, no labelling vendor, no separate gpu account. private alpha,
-            small cohort.
+            data-broker, no labelling vendor, no separate gpu account.
           </p>
           <div className="hero-ctas" style={{ marginTop: 24, justifyContent: 'flex-start' }}>
-            <a href="mailto:g_guney@icloud.com?subject=panel%20paid-train%20access" className="btn btn-primary">
-              request access
-            </a>
-            <Link href="/how-it-works" className="btn btn-ghost">read the loop</Link>
+            <Link href="/how-it-works" className="btn btn-primary">see the full loop</Link>
+            <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer" className="btn btn-ghost">read the code</a>
           </div>
         </div>
       </section>
@@ -204,7 +201,7 @@ export default function Home() {
           <div className="grid-2">
             <div>
               <div className="section-eyebrow">where it is today</div>
-              <h3 style={{ marginBottom: 16 }}>shipped in the poc</h3>
+              <h3 style={{ marginBottom: 16 }}>shipped now</h3>
               <div className="pill-row">
                 <span className="badge">L1 live · /embed</span>
                 <span className="badge">persistent sqlite</span>
@@ -236,7 +233,7 @@ export default function Home() {
       </section>
 
       <footer className="site-footer">
-        panel · proof of concept ·{' '}
+        panel · open build ·{' '}
         <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer">github</a>
         {' · '}
         <Link href="/how-it-works">how it works</Link>

@@ -302,6 +302,7 @@ nav.topbar .brand {
 @media (max-width: 768px) {
   .hero { padding: 72px 0 48px; }
   .hero h1 { font-size: 40px; letter-spacing: -0.88px; line-height: 1.05; }
+  .live-iframe-wrap iframe { height: 460px; }
 }
 
 .hero-sub {
@@ -357,9 +358,14 @@ nav.topbar .brand {
   0%, 100% { opacity: 0.6; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.15); }
 }
+.live-iframe-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
 .live-iframe-wrap iframe {
   width: 100%;
-  height: 360px;
+  height: 520px;
   border: 0;
   border-radius: 8px;
   background: var(--bg-3);
