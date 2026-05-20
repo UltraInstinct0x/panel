@@ -1,0 +1,16 @@
+[
+  { "name": "hermes:base",                 "surface": "hermes",    "description": "default hermes profile",                  "default_tier": "internal" },
+  { "name": "hermes:machine",              "surface": "hermes",    "description": "discord text bot, groq",                  "default_tier": "internal" },
+  { "name": "hermes:machine-smart",        "surface": "hermes",    "description": "discord text bot, sonnet 4.5",            "default_tier": "internal" },
+  { "name": "hermes:watcher",              "surface": "hermes",    "description": "multimodal-looker / streamer-watch",      "default_tier": "internal" },
+  { "name": "hermes:junior",               "surface": "hermes",    "description": "sisyphus-junior / opencode junior",       "default_tier": "internal" },
+  { "name": "opencode:hephaestus",         "surface": "opencode",  "description": "opencode planning agent",                 "default_tier": "internal" },
+  { "name": "opencode:prometheus",         "surface": "opencode",  "description": "opencode planning + architecture",        "default_tier": "internal" },
+  { "name": "opencode:atlas",              "surface": "opencode",  "description": "opencode execution agent",                "default_tier": "internal" },
+  { "name": "opencode:review",             "surface": "opencode",  "description": "opencode code review subagent",           "default_tier": "internal" },
+  { "name": "opencode:security-auditor",   "surface": "opencode",  "description": "opencode security review",                "default_tier": "internal" },
+  { "name": "opencode:performance-auditor","surface": "opencode",  "description": "opencode perf review",                    "default_tier": "internal" },
+  { "name": "opencode:test-engineer",      "surface": "opencode",  "description": "opencode test authoring",                 "default_tier": "internal" },
+  { "name": "modal-dev-gen",               "surface": "generator", "description": "modal serverless dev image+video",        "default_tier": "internal" },
+  { "name": "panel-archive-seeder",        "surface": "seeder",    "description": "public-archive honeypot seeder",          "default_tier": "internal" }
+]
