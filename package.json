@@ -8,7 +8,9 @@
     "start": "next start -p 3015 -H 127.0.0.1",
     "lint": "next lint",
     "test:scrubber-gate": "node __tests__/scrubber-gate.test.cjs",
-    "test:operator-mint": "tsx __tests__/operator-mint.test.ts"
+    "test:operator-mint": "tsx __tests__/operator-mint.test.ts",
+    "test:archive-seeder": "tsx __tests__/v7-archive-seeder.test.ts",
+    "seed:archive": "tsx scripts/seed-archive-honeypots.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
