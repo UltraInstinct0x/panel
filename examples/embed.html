@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>panel — cross-origin embed example</title>
+  <style>
+    body { font: 14px ui-monospace, Menlo, monospace; background: #0b0b0b; color: #ddd; padding: 24px; }
+    iframe { border: 1px solid #333; width: 480px; height: 520px; background: #111; }
+    .log { margin-top: 12px; padding: 10px; background: #111; border: 1px solid #333; max-width: 480px; }
+    code { color: #9ee; }
+  </style>
+</head>
+<body>
+  <h2>panel iframe embed (PoC)</h2>
+  <p>this page is served from any origin; the iframe loads <code>https://panel.goku.codes/embed?site_key=pk_demo_a</code> and posts the verification token back via postMessage.</p>
+
+  <iframe id="panel" src="https://panel.goku.codes/embed?site_key=pk_demo_a"></iframe>
+
+  <div class="log" id="log">listening for postMessage…</div>
+
+  <script>
+    window.addEventListener('message', function (ev) {
+      var d = ev.data || {};
+      if (d && d.type === 'panel:solved') {
+        var el = document.getElementById('log');
+        el.innerHTML = '<b>panel:solved</b><br/>trust: ' + d.trust + '<br/>token: <code>' + d.token + '</code>';
+        // operator-side verification:
+        fetch('https://panel.goku.codes/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: d.token })
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          var v = document.createElement('pre');
+          v.textContent = JSON.stringify(j, null, 2);
+          el.appendChild(v);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

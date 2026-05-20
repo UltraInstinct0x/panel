@@ -18,6 +18,7 @@ export default function OperatorPage() {
             <div className="card stat">
               <div className="stat-label">units in pool</div>
               <div className="stat-n">{stats.total_units}</div>
+              <div className="faint" style={{ fontSize: 11 }}>{stats.public_units} public · {stats.technical_units} technical</div>
             </div>
             <div className="card stat">
               <div className="stat-label">judgments collected</div>
@@ -26,10 +27,21 @@ export default function OperatorPage() {
             <div className="card stat">
               <div className="stat-label">raters</div>
               <div className="stat-n">{stats.total_raters}</div>
+              <div className="faint" style={{ fontSize: 11 }}>{stats.flagged_raters} bot-flagged</div>
             </div>
             <div className="card stat">
               <div className="stat-label">avg rater trust</div>
               <div className="stat-n">{(stats.avg_trust * 100).toFixed(1)}%</div>
+            </div>
+            <div className="card stat">
+              <div className="stat-label">honeypots seeded</div>
+              <div className="stat-n">{stats.honeypot_units}</div>
+              <div className="faint" style={{ fontSize: 11 }}>D13.4 — adversarial units</div>
+            </div>
+            <div className="card stat">
+              <div className="stat-label">honeypot failures</div>
+              <div className="stat-n">{stats.honeypot_failures}</div>
+              <div className="faint" style={{ fontSize: 11 }}>raters who picked the obvious-wrong answer</div>
             </div>
           </div>
         )}
@@ -81,15 +93,17 @@ export default function OperatorPage() {
         <h3 style={{ marginTop: 32 }}>recent judgments (all raters)</h3>
         {stats?.recent_judgments?.length ? (
           <table>
-            <thead><tr><th>when</th><th>rater</th><th>unit</th><th>choice</th><th>gold?</th></tr></thead>
+            <thead><tr><th>when</th><th>rater</th><th>unit</th><th>pool</th><th>choice</th><th>gold?</th><th>honeypot</th></tr></thead>
             <tbody>
               {stats.recent_judgments.map((j: any) => (
                 <tr key={j.id}>
                   <td className="faint">{new Date(j.created_at).toLocaleTimeString()}</td>
                   <td><code>{j.rater_id}</code></td>
                   <td><code>{j.unit_id}</code></td>
+                  <td className="faint">{j.pool || '—'}</td>
                   <td>{j.choice}</td>
                   <td>{j.agreed_with_gold === null ? '—' : j.agreed_with_gold ? '✓' : '✗'}</td>
+                  <td>{j.honeypot_failed ? <span className="badge badge-danger">flagged</span> : '—'}</td>
                 </tr>
               ))}
             </tbody>

@@ -37,7 +37,7 @@ export default function GatePage() {
           <input type="password" placeholder="••••••••" value={pw} onChange={e => setPw(e.target.value)} />
 
           <div style={{ marginTop: 20 }}>
-            <Widget onSolved={() => setVerified(true)} />
+            <Widget siteKey="pk_demo_a" onSolved={() => setVerified(true)} />
           </div>
 
           <button
