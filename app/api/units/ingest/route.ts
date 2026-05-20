@@ -4,10 +4,11 @@
 // rate-limited by site_key (existing checkBoth). No anonymous ingest.
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db } from '@/lib/db';
+import { db, scrubberRequiredFor } from '@/lib/db';
 import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
 import { logAccess } from '@/lib/logger';
 import { audit } from '@/lib/audit';
+import { verifyAttestation, sha256Hex } from '@/lib/scrubber-attestation';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -63,6 +64,38 @@ export async function POST(req: NextRequest) {
 
   let body: any;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
+
+  // WS-M: scrubber attestation gate. Only third-party keys (scrubber_required=true) need it.
+  const scrubberRequired = scrubberRequiredFor(siteKey);
+  const attHeader = req.headers.get('x-scrubber-attestation');
+  if (scrubberRequired) {
+    if (!attHeader) {
+      audit('operator', siteKey, 'ingest.scrubber_attestation_missing', 'units', '', null);
+      return NextResponse.json({ error: 'scrubber_attestation_required', detail: 'X-Scrubber-Attestation header required for this site_key' }, { status: 422 });
+    }
+    const expectedHash = sha256Hex(raw);
+    const v = verifyAttestation(attHeader, { expectedOutputHash: expectedHash });
+    if (!v.ok) {
+      const codeMap: Record<string, string> = {
+        expired: 'scrubber_attestation_stale',
+        stale: 'scrubber_attestation_stale',
+        hash_mismatch: 'scrubber_attestation_hash_mismatch',
+        bad_signature: 'scrubber_attestation_bad_signature',
+        malformed: 'scrubber_attestation_malformed',
+        missing: 'scrubber_attestation_required',
+        no_secret: 'scrubber_attestation_misconfigured',
+      };
+      const code = codeMap[v.error] ?? 'scrubber_attestation_invalid';
+      audit('operator', siteKey, `ingest.${code}`, 'units', '', { reason: v.error });
+      return NextResponse.json({ error: code }, { status: 422 });
+    }
+  } else {
+    // carve-out: pre-sanitized first-party key. log every use so it can't become a silent bypass.
+    audit('operator', siteKey, 'ingest.scrubber_bypassed', 'units', '', {
+      reason: 'site_key has scrubber_required=false',
+      bytes: raw.length,
+    });
+  }
 
   const items: any[] = Array.isArray(body) ? body : Array.isArray(body?.units) ? body.units : (body ? [body] : []);
   if (items.length === 0) return NextResponse.json({ error: 'empty_payload' }, { status: 400 });

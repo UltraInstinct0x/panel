@@ -71,6 +71,15 @@ function openDb(): Database.Database {
       tokens REAL NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    -- WS-M: registered operator site_keys + scrubber-required flag.
+    -- carve-out (scrubber_required=0) is OPT-IN per key, audited at creation.
+    CREATE TABLE IF NOT EXISTS site_keys (
+      site_key TEXT PRIMARY KEY,
+      scrubber_required INTEGER NOT NULL DEFAULT 1,
+      label TEXT,
+      created_at INTEGER NOT NULL
+    );
   `);
   return d;
 }
@@ -111,6 +120,36 @@ export function saveBucket(key: string, tokens: number, updated_at: number): voi
 export function gcBuckets(): number {
   const r = db.prepare('DELETE FROM rate_buckets WHERE updated_at < ?').run(Date.now() - 3600_000);
   return r.changes;
+}
+
+// ---------- WS-M: site_keys (scrubber-required flag) ----------
+
+export interface SiteKeyRow {
+  site_key: string;
+  scrubber_required: number; // 0 | 1
+  label: string | null;
+  created_at: number;
+}
+
+export function getSiteKey(siteKey: string): SiteKeyRow | undefined {
+  return db.prepare(
+    'SELECT site_key, scrubber_required, label, created_at FROM site_keys WHERE site_key = ?',
+  ).get(siteKey) as SiteKeyRow | undefined;
+}
+
+export function upsertSiteKey(siteKey: string, scrubberRequired: boolean, label?: string): void {
+  db.prepare(
+    `INSERT INTO site_keys (site_key, scrubber_required, label, created_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(site_key) DO UPDATE SET scrubber_required=excluded.scrubber_required, label=excluded.label`,
+  ).run(siteKey, scrubberRequired ? 1 : 0, label ?? null, Date.now());
+}
+
+// scrubber_required defaults to true if key is unregistered — fail-closed.
+export function scrubberRequiredFor(siteKey: string): boolean {
+  const row = getSiteKey(siteKey);
+  if (!row) return true;
+  return row.scrubber_required === 1;
 }
 
 // ---------- graceful shutdown ----------

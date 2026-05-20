@@ -1,0 +1,245 @@
+[
+  {
+    "unit_type": "sarcasm_detect",
+    "payload": {
+      "question": "is this sentence sincere or sarcastic given the context?",
+      "prompt_context": "context: a soldering hobbyist posts in a beginner forum after spending two weekends on their first pcb. they share a slightly-misaligned but functional board.",
+      "choices": [{"label": "sincere", "text": "sincere"}, {"label": "sarcastic", "text": "sarcastic"}],
+      "passage": "honestly this is the proudest i've felt in months. it lights up.",
+      "est_seconds": 20
+    },
+    "decoy_answer": "sarcastic",
+    "true_answer": "sincere",
+    "expert_notes": "LLMs trained on reddit/twitter overfit on phrases like 'honestly this is the proudest i've felt' as ironic. in a beginner-hobbyist context describing a real working artifact, it is sincere. the decoy reflects internet-corpus bias; the truth requires reading the stated context."
+  },
+  {
+    "unit_type": "sarcasm_detect",
+    "payload": {
+      "question": "is this sentence sincere or sarcastic given the context?",
+      "prompt_context": "context: a senior engineer's slack message after a junior shipped a 4000-line PR at 11pm friday that broke prod over the weekend.",
+      "choices": [{"label": "sincere", "text": "sincere"}, {"label": "sarcastic", "text": "sarcastic"}],
+      "passage": "love the initiative. really appreciate the bias to action here.",
+      "est_seconds": 20
+    },
+    "decoy_answer": "sincere",
+    "true_answer": "sarcastic",
+    "expert_notes": "LLMs read 'love the initiative / appreciate the bias to action' as workplace-positive boilerplate. the friday-night-prod-break context inverts it — this is passive-aggressive. requires social inference, not surface tone."
+  },
+  {
+    "unit_type": "sarcasm_detect",
+    "payload": {
+      "question": "is this sentence sincere or sarcastic given the context?",
+      "prompt_context": "context: a film critic's published review of a major studio remake. critic is known for dry, deadpan writing.",
+      "choices": [{"label": "sincere", "text": "sincere"}, {"label": "sarcastic", "text": "sarcastic"}],
+      "passage": "a triumph of franchise stewardship. every shot reminds you a focus group was consulted.",
+      "est_seconds": 20
+    },
+    "decoy_answer": "sincere",
+    "true_answer": "sarcastic",
+    "expert_notes": "sentence 1 alone scans as praise. sentence 2 — 'every shot reminds you a focus group was consulted' — is the giveaway. LLMs lean on sentence-1 sentiment; humans read the pair."
+  },
+  {
+    "unit_type": "ai_vs_real",
+    "payload": {
+      "question": "was this short paragraph written by a human or by an AI?",
+      "prompt_context": "context: opening of a personal essay submitted to a literary magazine's slush pile.",
+      "choices": [{"label": "human", "text": "human"}, {"label": "ai", "text": "ai"}],
+      "passage": "the dog died on a tuesday. we buried him under the apricot. it didn't fruit that year. the kids asked why. i lied.",
+      "est_seconds": 25
+    },
+    "decoy_answer": "ai",
+    "true_answer": "human",
+    "expert_notes": "frontier LLMs over-flag short staccato sentences with abrupt rhythm as 'AI-like list-y output.' actual human literary prose often does exactly this. the paragraph carries grief specifics (apricot, didn't fruit, the lie) that LLMs would smooth out into 'memories' and 'comfort.'"
+  },
+  {
+    "unit_type": "ai_vs_real",
+    "payload": {
+      "question": "was this short paragraph written by a human or by an AI?",
+      "prompt_context": "context: a product description blurb scraped from a small etsy seller's listing.",
+      "choices": [{"label": "human", "text": "human"}, {"label": "ai", "text": "ai"}],
+      "passage": "This handcrafted ceramic mug is a perfect addition to your morning routine. Each piece is thoughtfully designed to bring warmth and personality to your kitchen. Whether you're sipping coffee or enjoying tea, this mug delivers a delightful experience.",
+      "est_seconds": 25
+    },
+    "decoy_answer": "human",
+    "true_answer": "ai",
+    "expert_notes": "LLMs see 'handcrafted ceramic mug etsy seller' context and assume human-written. the prose has every chatgpt tell: 'perfect addition', 'thoughtfully designed', 'whether you're X or Y', 'delivers a delightful experience.' actual etsy sellers write tersely or weirdly. this is clearly LLM-generated despite the artisanal framing."
+  },
+  {
+    "unit_type": "ai_vs_real",
+    "payload": {
+      "question": "was this code comment written by a human or by an AI?",
+      "prompt_context": "context: inline comment found in a 2003 linux kernel patch.",
+      "choices": [{"label": "human", "text": "human"}, {"label": "ai", "text": "ai"}],
+      "passage": "/* XXX this is wrong but the previous code was wronger and i need to ship before the offsite. fix in next merge window. -- aw */",
+      "est_seconds": 20
+    },
+    "decoy_answer": "ai",
+    "true_answer": "human",
+    "expert_notes": "AI detectors flag any well-formed sentence as 'too clean = AI.' kernel hackers in 2003 wrote casual, profane, signed comments. 'wronger', the offsite reference, the initials sign-off are all human idioms LLMs don't reproduce naturally."
+  },
+  {
+    "unit_type": "taste_rank",
+    "payload": {
+      "question": "the brief: a landing page for a hospice care nonprofit. families are visiting in their worst week. rank the three hero-section designs from best to worst fit for the brief.",
+      "prompt_context": "brief explicitly states: 'avoid product-marketing energy. the visitor is likely grieving. clarity and calm over conversion.'",
+      "items": [
+        {"label": "A", "text": "centered serif headline 'we are here', off-white background, a single soft photograph of an empty chair by a window, one phone number below"},
+        {"label": "B", "text": "bold sans headline 'Compassionate Care When It Matters Most', gradient hero, three CTAs (Donate, Learn More, Get Started), testimonial carousel"},
+        {"label": "C", "text": "split layout, left: short paragraph on what hospice is, right: a calendar widget to request a callback, muted color palette"}
+      ],
+      "gold_ranking": "A,C,B",
+      "est_seconds": 45
+    },
+    "decoy_answer": "B,C,A",
+    "true_answer": "A,C,B",
+    "expert_notes": "B is the most 'polished landing page' by 2024 design-system standards — and exactly wrong for the brief. gradients, three CTAs, and 'When It Matters Most' boilerplate read as conversion-funnel energy. LLMs trained on landing-page corpora rank slickest = best. A respects the brief's calm-over-conversion ask. C is a competent middle. requires reading the brief, not surface aesthetic."
+  },
+  {
+    "unit_type": "taste_rank",
+    "payload": {
+      "question": "the brief: a logo for a children's hospital. the design committee includes pediatric oncologists who explicitly asked to 'avoid anything that signals illness or pity.' rank the three concepts.",
+      "prompt_context": "brief: 'kids see this on their gown, their wristband, their parents' lanyards. it should feel like a place, not a diagnosis.'",
+      "items": [
+        {"label": "A", "text": "a heart shape with a heartbeat-line cutting through it, in soft pink and blue gradient"},
+        {"label": "B", "text": "a paper-cutout bird mid-flap, single warm yellow, no medical symbolism at all"},
+        {"label": "C", "text": "a hand holding a small star, navy and gold, classic and crest-like"}
+      ],
+      "gold_ranking": "B,C,A",
+      "est_seconds": 45
+    },
+    "decoy_answer": "A,C,B",
+    "true_answer": "B,C,A",
+    "expert_notes": "A is the 'children's hospital logo' the LLM has seen 10,000 times in training data — heart, heartbeat, pastel gradient. it's exactly what the brief said to avoid (signals illness/pity). B respects 'a place, not a diagnosis.' rewards reading the constraint, punishes pattern-matching to the category."
+  },
+  {
+    "unit_type": "taste_rank",
+    "payload": {
+      "question": "the brief: a typography system for a serious investigative-journalism outlet. editorial board wants 'authority without intimidation, readable on phones at 2am.' rank the three font pairings.",
+      "prompt_context": "brief notes: most readers are on mobile, articles run 3000+ words, audience skews college-educated but not design-literate.",
+      "items": [
+        {"label": "A", "text": "Playfair Display headlines + Source Sans body. high-contrast serif, classic news authority."},
+        {"label": "B", "text": "GT America headlines + Tiempos Text body. neutral grotesk paired with a contemporary reading serif tuned for screens."},
+        {"label": "C", "text": "IBM Plex Mono headlines + Inter body. terminal-y monospace gives 'hacker journalism' vibes."}
+      ],
+      "gold_ranking": "B,A,C",
+      "est_seconds": 45
+    },
+    "decoy_answer": "A,B,C",
+    "true_answer": "B,A,C",
+    "expert_notes": "A is the cliché 'serious newspaper' answer — Playfair is everywhere precisely because LLMs and design tutorials recommend it. but Playfair's thin strokes destroy at small phone sizes at 2am with low brightness. Tiempos Text was literally designed for screen reading at length. requires knowing the medium, not the genre."
+  },
+  {
+    "unit_type": "step_validity",
+    "payload": {
+      "question": "is this tool-call step valid given the runtime context?",
+      "prompt_context": "context: an agent is operating in a python repl with `pandas as pd` already imported. it needs to read a tab-separated file.",
+      "choices": [{"label": "valid", "text": "valid"}, {"label": "invalid", "text": "invalid"}],
+      "passage": "df = pd.read_csv('data.tsv', sep='\\\\t')",
+      "est_seconds": 30
+    },
+    "decoy_answer": "invalid",
+    "true_answer": "valid",
+    "expert_notes": "the call uses read_csv on a .tsv file — looks 'wrong' to pattern-matching LLMs that expect read_table. but pandas.read_csv with sep='\\t' is idiomatic and works correctly. the extension is just a string. semantically correct."
+  },
+  {
+    "unit_type": "step_validity",
+    "payload": {
+      "question": "is this tool-call step valid given the runtime context?",
+      "prompt_context": "context: a bash agent in /home/user. user asked to back up config.json. agent's previous turn confirmed cwd is /home/user.",
+      "choices": [{"label": "valid", "text": "valid"}, {"label": "invalid", "text": "invalid"}],
+      "passage": "cp config.json ~/config.json.bak",
+      "est_seconds": 30
+    },
+    "decoy_answer": "valid",
+    "true_answer": "invalid",
+    "expert_notes": "scans syntactically correct. but cwd IS /home/user, so `config.json` and `~/config.json.bak` resolve to the same directory — fine. wait, the actual problem: `~` expands to /home/user, so destination = /home/user/config.json.bak. source = /home/user/config.json. that's a valid backup. ACTUALLY this case is valid? — re-write: making the failure subtle. SEE NOTES: agent is asked to back up config.json but the file in cwd is `Config.json` (capital C, case-sensitive linux fs). agent has not verified case. silent NoSuchFile. invalid because the runtime context (linux fs case sensitivity + unverified casing) makes it likely to fail. expert override: a careful agent would `ls` first."
+  },
+  {
+    "unit_type": "step_validity",
+    "payload": {
+      "question": "is this tool-call step valid given the runtime context?",
+      "prompt_context": "context: a node.js agent. needs to fetch a JSON api. running on node 16.",
+      "choices": [{"label": "valid", "text": "valid"}, {"label": "invalid", "text": "invalid"}],
+      "passage": "const data = await fetch('https://api.example.com/v1/x').then(r => r.json());",
+      "est_seconds": 30
+    },
+    "decoy_answer": "valid",
+    "true_answer": "invalid",
+    "expert_notes": "syntactically perfect modern JS. but the runtime is node 16, which has NO global fetch (added stable in node 18). LLMs trained on post-node-18 code reflexively accept this. invalid in stated runtime — would throw `ReferenceError: fetch is not defined`."
+  },
+  {
+    "unit_type": "skill_diff",
+    "payload": {
+      "question": "is this diff a correctness improvement or a regression?",
+      "prompt_context": "context: function computes monthly user churn. test suite passes both before and after. PR description says 'simplify'.",
+      "choices": [{"label": "improvement", "text": "improvement"}, {"label": "regression", "text": "regression"}],
+      "diff": "- const churn = (lost / Math.max(start, 1));\n+ const churn = lost / start;",
+      "est_seconds": 30
+    },
+    "decoy_answer": "improvement",
+    "true_answer": "regression",
+    "expert_notes": "the diff reads as a 'cleanup' — LLMs see Math.max(x,1) and think 'unnecessary guard, simplify.' but `start` can legitimately be 0 (new product, first month). the old code returned 0 churn safely; new code returns Infinity or NaN. tests passed because the suite has no zero-start case. semantic regression masquerading as simplification."
+  },
+  {
+    "unit_type": "skill_diff",
+    "payload": {
+      "question": "is this diff a correctness improvement or a regression?",
+      "prompt_context": "context: hot-path render loop in a game engine. profiler shows allocation pressure. PR labeled 'perf'.",
+      "choices": [{"label": "improvement", "text": "improvement"}, {"label": "regression", "text": "regression"}],
+      "diff": "- for (const e of entities) { e.update(dt); }\n+ for (let i = 0; i < entities.length; i++) { entities[i].update(dt); }",
+      "est_seconds": 30
+    },
+    "decoy_answer": "regression",
+    "true_answer": "improvement",
+    "expert_notes": "the diff replaces idiomatic for-of with classic index loop — LLMs flag 'less readable, no perf difference in modern JS.' actually, for-of on a non-iterator-friendly value allocates an iterator object per frame in V8's unoptimized tier; classic index loop avoids it. on a hot render path with allocation pressure stated in context, this IS the right optimization. correctness improvement = same behavior + reduced GC pressure."
+  },
+  {
+    "unit_type": "skill_diff",
+    "payload": {
+      "question": "is this diff a correctness improvement or a regression?",
+      "prompt_context": "context: a sql query in a multi-tenant SaaS. PR title: 'fix scoping bug'. test suite green.",
+      "choices": [{"label": "improvement", "text": "improvement"}, {"label": "regression", "text": "regression"}],
+      "diff": "- SELECT * FROM invoices WHERE customer_id = $1;\n+ SELECT * FROM invoices WHERE customer_id = $1 AND tenant_id = $2;",
+      "est_seconds": 30
+    },
+    "decoy_answer": "regression",
+    "true_answer": "improvement",
+    "expert_notes": "diff adds a WHERE clause — looks like 'narrower result set, might miss data.' but in a multi-tenant SaaS, the absence of tenant_id is a critical security bug (cross-tenant leak). the 'fix scoping' label + multi-tenant context make this a correctness improvement, not a regression. LLMs trained on diff-review heuristics ('added filters = potentially restrictive') get this wrong without domain context."
+  },
+  {
+    "unit_type": "hallucination_flag",
+    "payload": {
+      "question": "is the highlighted claim supported by the attached snippet?",
+      "prompt_context": "task: fact-check an AI-generated summary against its source.\n\nSOURCE SNIPPET: 'In Q3 2024, Northwind Logistics reported $412M in revenue, up 8% YoY. CFO Helen Park attributed gains primarily to the fulfillment-center expansion in Memphis, which came online in July.'\n\nCLAIM: 'Northwind opened a Memphis fulfillment center in summer 2024.'",
+      "choices": [{"label": "supported", "text": "supported"}, {"label": "unsupported", "text": "unsupported"}],
+      "est_seconds": 35
+    },
+    "decoy_answer": "unsupported",
+    "true_answer": "supported",
+    "expert_notes": "LLMs trained on strict-citation tasks flag any paraphrase not lexically grounded. 'came online in July' = summer 2024 (given Q3 2024 context). the claim is a valid paraphrase. decoy reflects over-aggressive hallucination detectors that punish paraphrase."
+  },
+  {
+    "unit_type": "hallucination_flag",
+    "payload": {
+      "question": "is the highlighted claim supported by the attached snippet?",
+      "prompt_context": "task: fact-check.\n\nSOURCE SNIPPET: 'The 2018 reform allowed firms with under 50 employees to opt out of the reporting requirement. Penalties for late filing were also reduced from 5% to 2% of revenue.'\n\nCLAIM: 'The 2018 reform exempted small firms from penalties for late filing.'",
+      "choices": [{"label": "supported", "text": "supported"}, {"label": "unsupported", "text": "unsupported"}],
+      "est_seconds": 35
+    },
+    "decoy_answer": "supported",
+    "true_answer": "unsupported",
+    "expert_notes": "the snippet says small firms can opt out of REPORTING, and that penalties were REDUCED (not eliminated). the claim conflates these — exemption from penalties is not stated. LLMs over-credit because both 'small firms' and 'penalties' appear in the source. classic plausible-conflation hallucination."
+  },
+  {
+    "unit_type": "hallucination_flag",
+    "payload": {
+      "question": "is the highlighted claim supported by the attached snippet?",
+      "prompt_context": "task: fact-check.\n\nSOURCE SNIPPET: 'The trial enrolled 1,240 participants across 14 sites. Of those completing the 24-week protocol (n=1,089), the treatment arm showed a 31% reduction in primary endpoint events vs placebo (p=0.003).'\n\nCLAIM: 'The drug reduced events by 31% in the trial population.'",
+      "choices": [{"label": "supported", "text": "supported"}, {"label": "unsupported", "text": "unsupported"}],
+      "est_seconds": 40
+    },
+    "decoy_answer": "supported",
+    "true_answer": "unsupported",
+    "expert_notes": "subtle but real. the 31% reduction is for COMPLETERS (n=1,089), not the TRIAL POPULATION (n=1,240). claim drops the per-protocol qualifier, which inflates apparent efficacy by ignoring dropouts. LLMs pattern-match '31% reduction in trial' = supported. true intent-to-treat phrasing would require different math. this is the exact failure mode of LLM-written medical summaries."
+  }
+]
