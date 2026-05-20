@@ -59,6 +59,7 @@
       +   'background:#0a111c;border:1px solid #233040;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden;'
       +   'display:flex;flex-direction:column;animation:pnlPopIn .15s ease}'
       + '.pnl-pop-iframe{width:100%;flex:1 1 auto;min-height:520px;border:0;background:transparent;display:block;overflow:auto}'
+      + '.pnl-pop[data-state="closing"]{transition:opacity .22s ease, transform .22s ease;opacity:0;transform:translateY(-2px) scale(.92);pointer-events:none}'
       + '@keyframes pnlPopIn{from{opacity:0;transform:translateY(4px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}';
     var s = document.createElement('style');
     s.id = STYLE_ID;
@@ -193,7 +194,15 @@
         pill.querySelector('.pnl-label').textContent = 'verified';
         try { if (typeof opts.onSolved === 'function') opts.onSolved(d.token, { trust: d.trust }); } catch (_) {}
         try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: d.token, trust: d.trust }, bubbles: true })); } catch (_) {}
-        setTimeout(close, 350);
+        // let the user actually see the "verified" success state inside the
+        // iframe before tearing it down. linger ~1.1s, then shrink-fade close.
+        if (pop) {
+          setTimeout(function () {
+            if (!pop) return;
+            pop.setAttribute('data-state', 'closing');
+            setTimeout(close, 240);
+          }, 1100);
+        }
       }
     }
     window.addEventListener('message', onMsg);

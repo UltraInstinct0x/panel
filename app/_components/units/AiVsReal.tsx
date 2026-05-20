@@ -12,7 +12,7 @@ export default function AiVsReal({ unit, onAnswer, disabled }: RendererProps) {
       {hasImage ? (
         <div className="u-aivr-frame">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={unit.image_url} alt="judge if this image is AI-generated or real" width={320} height={320} />
+          <img src={unit.image_url} alt="solve: is this image AI-generated or real" width={320} height={320} />
         </div>
       ) : (
         <blockquote className="u-aivr-quote">

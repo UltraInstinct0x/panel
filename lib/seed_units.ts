@@ -395,7 +395,7 @@ export function seedUnitsAll(): Unit[] {
     // ============ public pool — dub_sync ============
     {
       id: 'u_dub_001', type: 'dub_sync', pool: 'public', source_agent: 'video/dub-pipeline',
-      prompt_context: 'short clip with a dubbed track. play it, then judge.',
+      prompt_context: 'short clip with a dubbed track. play it, then solve.',
       question: 'does the dub sync to the on-screen action?',
       binary: { yes: 'yes — in sync', no: 'no — drifts' },
       video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',

@@ -283,7 +283,7 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
           </div>
           <div className="w2-ok-meta">earned ${(solved.earned_cents / 100).toFixed(2)} · token issued</div>
           <div className="w2-ok-token">{solved.token.slice(0, 32)}…</div>
-          <button className="u-submit" onClick={load}>judge another →</button>
+          <button className="u-submit" onClick={load}>solve another →</button>
         </div>
       </div>
     );
