@@ -164,11 +164,12 @@ export interface SiteKeyRow {
   scrubber_required: number; // 0 | 1
   label: string | null;
   created_at: number;
+  tier_policy: string | null;
 }
 
 export function getSiteKey(siteKey: string): SiteKeyRow | undefined {
   return db.prepare(
-    'SELECT site_key, scrubber_required, label, created_at FROM site_keys WHERE site_key = ?',
+    'SELECT site_key, scrubber_required, label, created_at, tier_policy FROM site_keys WHERE site_key = ?',
   ).get(siteKey) as SiteKeyRow | undefined;
 }
 
