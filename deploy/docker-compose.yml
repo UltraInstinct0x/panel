@@ -1,0 +1,58 @@
+# panel + scrubber self-host stack
+#
+# Operators bring their own ingress (nginx/traefik/caddy/cloudflare tunnel).
+# This file just stands up the two app containers + a shared sqlite volume.
+#
+# usage:
+#   docker compose up -d
+#   curl http://localhost:3015/  # panel
+#   curl http://localhost:3017/health  # scrubber
+#
+# To wire panel → scrubber set SCRUBBER_URL=http://scrubber:3017 (already default below).
+# To make panel use the scrubber for technical-pool units, request /api/units/next?pool=technical
+# with a t2_/t3_ rater id; it will fail-closed if scrubber is unreachable.
+
+version: "3.9"
+
+services:
+  panel:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ../:/app
+      - panel-data:/app/.data
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile=false && pnpm build && pnpm start -p 3015 -H 0.0.0.0"
+    environment:
+      NODE_ENV: production
+      PORT: "3015"
+      HOSTNAME: "0.0.0.0"
+      SCRUBBER_URL: "http://scrubber:3017"
+      SCRUBBER_RULES: "base"
+      PANEL_DB_PATH: "/app/.data/panel.db"
+    ports:
+      - "3015:3015"
+    depends_on:
+      - scrubber
+    restart: unless-stopped
+
+  scrubber:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ../../scrubber-proxy:/app
+      - scrubber-data:/app/data
+    command: sh -c "npm install --omit=dev && node server.js"
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3017"
+      # CHANGE THIS in production — `openssl rand -hex 32`
+      SCRUBBER_REVERSAL_KEY: "change-me-in-prod-change-me-in-prod-change-me-in-prod"
+      SCRUBBER_DATA_DIR: "/app/data"
+    ports:
+      - "3017:3017"
+    restart: unless-stopped
+
+volumes:
+  panel-data:
+  scrubber-data:
