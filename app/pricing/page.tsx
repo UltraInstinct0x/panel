@@ -4,7 +4,7 @@ import Nav from '../_components/Nav';
 
 export const metadata = {
   title: 'pricing · panel',
-  description: 'preference-data captcha. captcha-tier cost, RLHF-grade signal. tiers from free self-host to enterprise.',
+  description: 'a captcha that asks visitors to judge real agent work. free for sites that need bot protection — paying operators get the dataset.',
 };
 
 const sx = {
@@ -29,7 +29,7 @@ const sx = {
 };
 
 const tiers = [
-  { name: 'Self-Host', price: '$0', sub: 'your hardware', cta: 'github →', href: 'https://github.com/UltraInstinct0x/panel', features: ['unlimited verifies', 'core scrubber pack', 'local dataset only', 'community support', '1 operator domain'] },
+  { name: 'Free', price: '$0', sub: 'hosted · captcha-only', cta: 'get widget key', href: '/onboard?plan=free', features: ['unlimited verifies on captcha-protected pages', 'real human-judgment tasks (not pick-a-bus)', 'rotates from live operator traffic — bots can\'t pre-scrape', 'panel branding on widget', '1 domain · community support', 'no dataset access (your visitors judge, paying ops keep labels)'] },
   { name: 'Design Partner', price: '$99', sub: 'per month · 25k verifies included', cta: 'apply', href: '/onboard', features: ['25k api calls/mo · $0.0020 overage', '30-day judgment dataset retention', 'csv/json export on demand', 'core + 1 vertical scrubber pack', '3 operator domains · email support 48h', 'preview cross-org pool (1k units sampled)'] },
   { name: 'Starter', price: '$199', sub: 'per month · 100k verifies included', cta: 'start', href: '/onboard', features: ['100k api calls/mo · $0.0018 overage', '90-day judgment dataset retention', 'csv/json export + api', 'core + 2 vertical scrubber packs', '5 operator domains · email support 24h', 'preview cross-org pool (10k units sampled)'], hot: true },
   { name: 'Growth', price: '$499', sub: 'per month · 500k verifies included', cta: 'contact', href: 'mailto:hi@goku.codes?subject=panel%20growth', features: ['500k api calls/mo · $0.0015 overage', '12-month dataset retention', 'csv/json + api + webhook', 'all vertical scrubber packs', '10 operator domains · 24h email + chat, 99.5% uptime', 'full read access to cross-org pool', 'full theme widget'] },
@@ -45,14 +45,15 @@ export default function PricingPage() {
           <div style={sx.muted}>pricing · v0</div>
           <h1 style={sx.h1}>preference-data captcha.</h1>
           <p style={sx.lede}>
-            captcha-tier cost. RLHF-grade signal. visitors judge your agent&apos;s actual output — skill diffs,
-            tool-call steps, pairwise comparisons — and you keep the labeled dataset. scale.ai-shaped data flow
-            in a turnstile-shaped widget.
+            a captcha that blocks bots by asking visitors to judge real work — agent outputs, skill diffs,
+            pairwise comparisons. <strong>free for any site that needs bot protection.</strong> the labels
+            your visitors produce flow into the pool that powers it, paying operators get the dataset and
+            fund the free tier. you protect your page, we improve the model, no one trains on stolen captchas.
           </p>
         </header>
 
         <div style={sx.warn}>
-          <strong>v0 published pricing.</strong> design-partner slots open, paid tiers wire up as we onboard first operators. lock-in for first 10 DPs at v0 rates for 12 months.
+          <strong>v0 published pricing.</strong> free tier is open — drop the widget on any page that needs bot protection. design-partner slots open for operators who want the dataset. lock-in for first 10 DPs at v0 rates for 12 months.
         </div>
 
         <div style={sx.grid}>
@@ -86,7 +87,7 @@ export default function PricingPage() {
             <tr><td style={sx.td}>agent-output preference data</td><td style={sx.td}>—</td><td style={sx.td}>—</td><td style={sx.td}>—</td><td style={sx.td}>yes (managed)</td><td style={sx.td}><strong>yes (self-serve)</strong></td></tr>
             <tr><td style={sx.td}>dataset goes to operator</td><td style={sx.td}>no</td><td style={sx.td}>no</td><td style={sx.td}>no (vendor keeps it)</td><td style={sx.td}>yes</td><td style={sx.td}><strong>yes</strong></td></tr>
             <tr><td style={sx.td}>compliance posture</td><td style={sx.td}>CF baseline</td><td style={sx.td}>Google data terms</td><td style={sx.td}>hcaptcha DPA</td><td style={sx.td}>SOC 2</td><td style={sx.td}>GDPR + KVKK; HIPAA roadmap; scrubber-proxy first</td></tr>
-            <tr><td style={sx.td}>LLM-bypass resistance</td><td style={sx.td}>medium</td><td style={sx.td}>medium-high</td><td style={sx.td}>medium-high</td><td style={sx.td}>n/a (not captcha)</td><td style={sx.td}>built for the LLM-bypass era (D12 + D13 split-pool + honeypots)</td></tr>
+            <tr><td style={sx.td}>bot resistance</td><td style={sx.td}>medium (token-based)</td><td style={sx.td}>medium-high (risk score)</td><td style={sx.td}>medium-high (image proof-of-work)</td><td style={sx.td}>n/a (not captcha)</td><td style={sx.td}><strong>high — tasks rotate from live operator traffic, can&apos;t be pre-scraped or pre-solved by an LLM</strong></td></tr>
             <tr><td style={sx.td}>turnaround</td><td style={sx.td}>instant</td><td style={sx.td}>instant</td><td style={sx.td}>instant</td><td style={sx.td}>weeks per batch</td><td style={sx.td}>real-time (visitor traffic IS the workforce)</td></tr>
           </tbody>
         </table>
@@ -100,7 +101,7 @@ export default function PricingPage() {
         </ul>
 
         <h2 style={sx.h2}>annual</h2>
-        <p>flat 17% off paid tiers (&quot;2 months free&quot;). annual prepay non-refundable mid-cycle. self-host has no annual — it&apos;s already free.</p>
+        <p>flat 17% off paid tiers (&quot;2 months free&quot;). annual prepay non-refundable mid-cycle. free tier is already free, no annual to discount.</p>
 
         <h2 style={sx.h2}>enterprise — what makes a deal enterprise</h2>
         <p>any one of:</p>

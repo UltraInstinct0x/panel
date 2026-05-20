@@ -8,7 +8,7 @@ export default function DocsPage() {
         <h1 style={{ fontSize: 36, margin: '4px 0' }}>panel-gate · integration</h1>
         <p className="muted" style={{ marginTop: 4 }}>
           drop-in human-verification widget. one click per visitor; the answer doubles as preference data.
-          public-pool units only — flagships can&apos;t solve taste reliably (D12).
+          public-pool units only — flagship LLMs can&apos;t reliably solve taste, so bots fail the gate.
         </p>
         <nav style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
           <a href="#install">1. install</a>
@@ -69,7 +69,7 @@ window.addEventListener('message', e => {
 const { ok, score, honeypot_failed } = await r.json();
 if (!ok || honeypot_failed || score < 0.5) return res.status(403).end('blocked');`}</pre>
         <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
-          tokens are single-use (jti ledger) and expire in ~10min. opaque scoring: the score may shift hours later as more humans rate the same unit (D13.5).
+          tokens are single-use (jti ledger) and expire in ~10min. opaque scoring: the score may shift hours later as more humans rate the same unit.
         </p>
       </section>
 
@@ -95,11 +95,11 @@ if (!ok || honeypot_failed || score < 0.5) return res.status(403).end('blocked')
           <li><b>taste_rank</b> — pick the best of 3 (UI copy, slogans, error messages)</li>
           <li><b>sarcasm_detect</b> / <b>ai_vs_real</b> — binary judgment</li>
           <li><b>dub_sync</b> — short CC clip + binary judgment on a/v alignment</li>
-          <li><b>drag_to_rank</b> — reorder 4 items (motor-control gate, D13.3)</li>
-          <li><b>span_highlight</b> — click first/last word to mark a span (motor-control gate, D13.3)</li>
+          <li><b>drag_to_rank</b> — reorder 4 items (motor-control bot gate)</li>
+          <li><b>span_highlight</b> — click first/last word to mark a span (motor-control bot gate)</li>
         </ul>
         <p className="muted" style={{ fontSize: 12 }}>
-          technical units (code review, agent traces) never reach anonymous raters — they flow through the paid trust pipeline (D12 split).
+          technical units (code review, agent traces) never reach anonymous raters — they flow through the trusted-rater pool.
         </p>
       </section>
 

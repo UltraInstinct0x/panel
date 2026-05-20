@@ -1,6 +1,5 @@
 // /admin/reviews — operator-side queue of skill-diff review units.
 // Shows pending units sorted by oldest, verdict counts, link to public verdict page.
-import { redirect } from 'next/navigation';
 import { requireAdminPage } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 import Nav from '../../_components/Nav';
@@ -37,7 +36,7 @@ function classify(yesN: number, noN: number, n: number) {
 
 export default function ReviewsPage() {
   const auth = requireAdminPage();
-  if (!auth.ok) redirect('/admin');
+  if (!auth.ok) return <Unauthorized />;
 
   // fetch all skill_diff* units with judgment tallies in one pass.
   const rows = db.prepare(
@@ -183,5 +182,15 @@ export default function ReviewsPage() {
         </table>
       </main>
     </div>
+  );
+}
+
+function Unauthorized() {
+  return (
+    <main style={{ padding: 24, fontFamily: 'ui-monospace, monospace' }}>
+      <h1>admin only</h1>
+      <p>set the <code>panel_admin_key</code> cookie to a value listed in <code>PANEL_ADMIN_KEYS</code> env.</p>
+      <pre style={{ background: '#fafafa', padding: 8, fontSize: 12 }}>{`document.cookie = 'panel_admin_key=YOUR_KEY; path=/; samesite=lax'`}</pre>
+    </main>
   );
 }

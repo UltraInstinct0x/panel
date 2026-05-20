@@ -190,7 +190,7 @@ export default function Home() {
           </p>
           <div className="hero-ctas" style={{ marginTop: 24, justifyContent: 'flex-start' }}>
             <Link href="/how-it-works" className="btn btn-primary">see the full loop</Link>
-            <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer" className="btn btn-ghost">read the code</a>
+            <Link href="/pricing" className="btn btn-ghost">pricing</Link>
           </div>
         </div>
       </section>
@@ -205,7 +205,7 @@ export default function Home() {
               <div className="pill-row">
                 <span className="badge">L1 live · /embed</span>
                 <span className="badge">persistent sqlite</span>
-                <span className="badge">D12 pool split</span>
+                <span className="badge">trust-pool routing</span>
                 <span className="badge">behavioral signals</span>
                 <span className="badge">honeypot units</span>
                 <span className="badge">operator-key auth</span>

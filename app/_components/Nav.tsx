@@ -11,7 +11,6 @@ export default function Nav() {
       <Link href="/dashboard">dashboard</Link>
       <Link href="/operator">operator</Link>
       <Link href="/privacy">privacy</Link>
-      <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer">github</a>
     </nav>
   );
 }
