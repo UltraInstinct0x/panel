@@ -53,14 +53,13 @@
       + '.pnl-box{position:relative;width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;background:#0b1220;flex:0 0 auto}'
       + '.pnl-label{flex:1;text-align:left;letter-spacing:.01em}'
       + '.pnl-brand{font:11px/1 ui-sans-serif,system-ui,sans-serif;color:#64748b;letter-spacing:.06em;text-transform:uppercase}'
-      + '.pnl-overlay{position:fixed;inset:0;background:rgba(2,6,12,.66);backdrop-filter:blur(3px);z-index:2147483646;display:flex;align-items:center;justify-content:center;animation:pnlFadeIn .15s ease}'
-      + '.pnl-modal{position:relative;width:min(460px,calc(100vw - 24px));max-height:calc(100vh - 32px);background:#0a111c;border:1px solid #233040;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden;animation:pnlPopIn .18s ease}'
-      + '.pnl-modal-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #1c2839;color:#cbd5e1;font:12px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase}'
-      + '.pnl-x{background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}'
-      + '.pnl-x:hover{color:#e2e8f0;background:#1c2839}'
-      + '.pnl-iframe{width:100%;flex:1 1 auto;min-height:480px;border:0;background:transparent;display:block}'
-      + '@keyframes pnlFadeIn{from{opacity:0}to{opacity:1}}'
-      + '@keyframes pnlPopIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}';
+      // floating popover anchored to the pill — no modal chrome, just the panel iframe in a shadowed card.
+      // panel's /embed page is already self-styled so we don't re-wrap it.
+      + '.pnl-pop{position:fixed;z-index:2147483646;width:min(460px,calc(100vw - 24px));max-height:min(620px,calc(100vh - 32px));'
+      +   'background:#0a111c;border:1px solid #233040;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden;'
+      +   'display:flex;flex-direction:column;animation:pnlPopIn .15s ease}'
+      + '.pnl-pop-iframe{width:100%;flex:1 1 auto;min-height:520px;border:0;background:transparent;display:block;overflow:auto}'
+      + '@keyframes pnlPopIn{from{opacity:0;transform:translateY(4px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}';
     var s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = css;
@@ -115,41 +114,71 @@
     el.appendChild(pill);
 
     var widget = makeWidget(siteKey, pool);
-    var overlay = null;
+    var pop = null;
     var iframe = null;
 
     function close() {
-      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-      overlay = null;
+      if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+      pop = null;
       iframe = null;
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDocClick, true);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
     }
     function onKey(e) { if (e.key === 'Escape') close(); }
+    function onDocClick(e) {
+      if (!pop) return;
+      if (pop.contains(e.target) || pill.contains(e.target)) return;
+      close();
+    }
+    function position() {
+      if (!pop) return;
+      var r = pill.getBoundingClientRect();
+      var w = pop.offsetWidth || 460;
+      var h = pop.offsetHeight || 540;
+      var pad = 8;
+      // prefer below; flip above if not enough room
+      var top = r.bottom + pad;
+      if (top + h > window.innerHeight - pad) {
+        top = Math.max(pad, r.top - h - pad);
+      }
+      // align left edges; clamp inside viewport
+      var left = r.left;
+      if (left + w > window.innerWidth - pad) left = window.innerWidth - w - pad;
+      if (left < pad) left = pad;
+      pop.style.top = top + 'px';
+      pop.style.left = left + 'px';
+    }
 
     function open() {
-      if (overlay) return;
-      overlay = document.createElement('div');
-      overlay.className = 'pnl-overlay';
-      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-
-      var modal = document.createElement('div');
-      modal.className = 'pnl-modal';
-      modal.innerHTML = '<div class="pnl-modal-hd"><span>panel · feedback</span><button type="button" class="pnl-x" aria-label="close">×</button></div>';
+      if (pop) return;
+      pop = document.createElement('div');
+      pop.className = 'pnl-pop';
+      pop.style.top = '-9999px';
+      pop.style.left = '-9999px';
       iframe = document.createElement('iframe');
-      iframe.className = 'pnl-iframe';
+      iframe.className = 'pnl-pop-iframe';
       iframe.title = 'panel — captcha / feedback';
       iframe.setAttribute('allowtransparency', 'true');
-      iframe.scrolling = 'no';
+      iframe.setAttribute('scrolling', 'auto');
       iframe.src = buildSrc({ site_key: siteKey, pool: pool });
-      modal.appendChild(iframe);
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-      modal.querySelector('.pnl-x').addEventListener('click', close);
+      pop.appendChild(iframe);
+      document.body.appendChild(pop);
+      // measure then position
+      requestAnimationFrame(position);
       document.addEventListener('keydown', onKey);
+      // outside-click after this current click finishes
+      setTimeout(function () {
+        document.addEventListener('mousedown', onDocClick, true);
+      }, 0);
+      window.addEventListener('resize', position);
+      window.addEventListener('scroll', position, true);
     }
 
     pill.addEventListener('click', function () {
       if (widget.token) return; // already solved
+      if (pop) { close(); return; }
       open();
     });
 
