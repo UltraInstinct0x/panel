@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordJudgment, getUnit } from '@/lib/store';
+import { applyBehavioralFloor } from '@/lib/honeypot';
 import { requireSiteKey } from '@/lib/auth';
 import { issue, scoreBehavioral } from '@/lib/attestation';
 import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     const unit = getUnit(unit_id)!;
-    const behavioral_score = scoreBehavioral(behavioral);
+    const behavioral_score = applyBehavioralFloor(scoreBehavioral(behavioral), String(rater_id));
     const token = issue({
       jti: result.judgment.id,
       uid: unit_id,

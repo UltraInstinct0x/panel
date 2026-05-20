@@ -1,6 +1,12 @@
 // sqlite-backed store. API-compatible with the prior in-memory PoC.
 import { db } from './db';
 import { seedUnitsAll } from './seed_units';
+import {
+  maybeSubstituteHoneypot,
+  evaluateHoneypot,
+  applyBehavioralFloor,
+  ensureHoneypotSchema,
+} from './honeypot';
 
 export type UnitType =
   | 'pairwise_trace'
@@ -103,6 +109,28 @@ function seedIfEmpty() {
 // ---------- unit access ----------
 
 export function getUnit(id: string): Unit | undefined {
+  // WS-O: virtual honeypot unit ids (`hp_<honeypot_id>`) are not in the units table.
+  if (id.startsWith('hp_')) {
+    const hpId = id.slice(3);
+    const row = db.prepare('SELECT * FROM honeypots WHERE honeypot_id = ?').get(hpId) as
+      | { honeypot_id: string; unit_type: UnitType; payload: string; decoy_answer: string; true_answer: string }
+      | undefined;
+    if (!row) return undefined;
+    const payload = JSON.parse(row.payload);
+    return {
+      id,
+      type: row.unit_type,
+      pool: 'public',
+      source_agent: 'honeypot',
+      prompt_context: '',
+      question: '',
+      ...payload,
+      is_honeypot: true,
+      obvious_wrong_answer: row.decoy_answer,
+      gold: row.true_answer,
+      est_seconds: payload.est_seconds ?? 20,
+    } as Unit;
+  }
   const row = db.prepare('SELECT json FROM units WHERE id = ?').get(id) as { json: string } | undefined;
   return row ? (JSON.parse(row.json) as Unit) : undefined;
 }
@@ -144,7 +172,9 @@ export function pickNextUnit(raterId: string, pool: UnitPool = 'public', siteKey
     pickFrom = unseen.length ? unseen : all;
   }
   const row = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-  return JSON.parse(row.json) as Unit;
+  const realUnit = JSON.parse(row.json) as Unit;
+  // WS-O: at tier-specific rates, substitute a matching-type honeypot for this real unit.
+  return maybeSubstituteHoneypot(realUnit, raterId);
 }
 
 export function getOrCreateRater(id: string): Rater {
@@ -171,13 +201,18 @@ export function recordJudgment(input: {
   const rater = getOrCreateRater(input.rater_id);
 
   const agreed = computeAgreement(unit, input.choice);
-  const honeypot_failed =
-    !!unit.is_honeypot && !!unit.obvious_wrong_answer && input.choice === unit.obvious_wrong_answer;
+  // WS-O: honeypot scoring overrides legacy `obvious_wrong_answer` × 0.6 path.
+  const hpOutcome = evaluateHoneypot(unit, input.choice, input.rater_id);
+  const honeypot_failed = hpOutcome.honeypot_result === 'failed';
 
   const prevTrust = rater.trust;
   let newTrust = prevTrust;
-  if (honeypot_failed) {
-    newTrust = prevTrust * 0.6; // hard penalty
+  if (hpOutcome.honeypot_result === 'failed') {
+    // compounding 0.85 hit; 3-consec → trust floored at 0.1
+    newTrust = prevTrust * hpOutcome.trust_multiplier;
+    if (hpOutcome.admin_flagged) newTrust = Math.min(newTrust, 0.1);
+  } else if (hpOutcome.honeypot_result === 'passed') {
+    newTrust = prevTrust; // no-op on pass
   } else if (agreed === true) {
     newTrust = prevTrust + (1 - prevTrust) * 0.08;
   } else if (agreed === false) {
@@ -204,14 +239,16 @@ export function recordJudgment(input: {
   const tx = db.transaction(() => {
     db.prepare(
       `INSERT INTO judgments
-       (id, unit_id, rater_id, choice, latency_ms, confidence, created_at, agreed_with_gold, honeypot_failed, pool, site_key, behavioral_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, unit_id, rater_id, choice, latency_ms, confidence, created_at, agreed_with_gold, honeypot_failed, pool, site_key, behavioral_json, honeypot_id, honeypot_result)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       j.id, j.unit_id, j.rater_id, j.choice, j.latency_ms, j.confidence, j.created_at,
       agreed === null ? null : agreed ? 1 : 0,
       honeypot_failed ? 1 : 0,
       unit.pool, input.site_key ?? null,
-      input.behavioral ? JSON.stringify(input.behavioral) : null
+      input.behavioral ? JSON.stringify(input.behavioral) : null,
+      hpOutcome.honeypot_id,
+      hpOutcome.honeypot_result,
     );
     db.prepare(
       `UPDATE raters SET
