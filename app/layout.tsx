@@ -1,23 +1,36 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-inter',
+});
+
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['400', '500'],
+  variable: '--font-mono',
+});
+
 export const metadata: Metadata = {
-  title: 'panel — captcha-shaped feedback layer for agent outputs',
-  description: 'visitors prove they\'re human by judging a piece of agent work. operators get a captcha. agent stacks get continuous preference data.',
+  title: 'panel — proof-of-humanity that produces signal',
+  description: 'three layers of human signal: taste captcha (L1), agent-output rating (L2), expert review (L3). one rater pool, one sdk, one feedback loop.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;600&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>{children}</body>
+    <html lang="en" className={`${inter.variable} ${mono.variable}`}>
+      <body style={{ fontFamily: `var(--font-inter), 'Inter', system-ui, sans-serif` }}>{children}</body>
     </html>
   );
 }
