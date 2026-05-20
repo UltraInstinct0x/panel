@@ -12,6 +12,7 @@ import { audit } from '@/lib/audit';
 import { verifyAttestation, sha256Hex } from '@/lib/scrubber-attestation';
 import { splitStructural, reMerge, Candidate } from '@/lib/splitter/structural';
 import { llmSplitProseCandidates } from '@/lib/splitter/llm';
+import { verifyIngestSecret, getIngestSecretHash } from '@/lib/operator-mint';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -110,10 +111,26 @@ export async function POST(req: NextRequest) {
   if (!siteKey || !sig) {
     return NextResponse.json({ error: 'missing_auth' }, { status: 401 });
   }
-  const secret = ingestSecretFor(siteKey);
-  if (!secret) return NextResponse.json({ error: 'ingest_not_configured', site_key: siteKey }, { status: 401 });
-  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');
-  if (!timingEqual(expected, sig)) {
+  const envSecret = ingestSecretFor(siteKey);
+  const dbHash = getIngestSecretHash(siteKey);
+  if (!envSecret && !dbHash) return NextResponse.json({ error: 'ingest_not_configured', site_key: siteKey }, { status: 401 });
+
+  let authed = false;
+  if (envSecret) {
+    const expected = crypto.createHmac('sha256', envSecret).update(raw).digest('hex');
+    if (timingEqual(expected, sig)) authed = true;
+  }
+  if (!authed && dbHash) {
+    // sig format with db-stored secrets: the caller can either send the raw
+    // secret as a Bearer-ish header, OR (preferred) send HMAC(secret, raw).
+    // We try both: header `x-panel-ingest-secret` for raw, sig for hmac.
+    const rawSecretHeader = req.headers.get('x-panel-ingest-secret');
+    if (rawSecretHeader && verifyIngestSecret(rawSecretHeader, dbHash)) {
+      const expected = crypto.createHmac('sha256', rawSecretHeader).update(raw).digest('hex');
+      if (timingEqual(expected, sig)) authed = true;
+    }
+  }
+  if (!authed) {
     audit('operator', siteKey, 'traces.bad_sig', 'traces', '', null);
     return NextResponse.json({ error: 'bad_signature' }, { status: 401 });
   }
