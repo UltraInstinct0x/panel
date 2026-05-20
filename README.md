@@ -144,15 +144,13 @@ production: panel.goku.codes. systemd-user unit + nginx reverse proxy.
 
 ## who this is for
 
-ranked verticals in `(600) Work/panel/gtm/Segments.md` (private vault). public version:
+everybody who'd otherwise drop in recaptcha or turnstile. the wedge is a change in thinking, not a vertical.
 
-- indie ticketing (Posh, Tixr, DICE, ZipperTic) — anti-scalping where verified-fan is already farmed.
-- paid newsletter writers on substack / beehiiv / ghost — bot-subs killing deliverability.
-- DTC shopify non-plus — card-testing bots polluting pixel data.
-- seed-stage telemed — SMS/voice OTP toll-fraud (H-ISAC Jan 2026).
-- direct-stripe creators — chargeback evidence at purchase confirm.
+- today the unit is "judge a piece of agent output" (taste, sarcasm, dub-sync, AI-vs-real). tomorrow the unit can be any signal a site already wants from a human — survey, sentiment, recall, recognition, preference.
+- the captcha is the distribution channel. the judgment is the product. every site that drops in panel gets bot-blocking and a continuous human-feedback stream on whatever it routes through.
+- so the addressable surface is the whole recaptcha/turnstile/hCaptcha footprint — signup forms, comments, checkout, paywalls, downloads, login, password reset — across consumer, b2b, enterprise, gov, dev tools, hospital portals, ticketing, e-com, AI products, anywhere a human-vs-bot gate sits today.
 
-not for: ticketmaster, salesforce commerce, hospital systems, dev tools, AI startup signup forms.
+early lighthouse design partners (where the dogfood loop is sharpest) live in `(600) Work/panel/gtm/Segments.md`. the platform itself has no vertical lock-in.
 
 ## license
 
