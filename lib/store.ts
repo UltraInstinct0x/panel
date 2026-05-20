@@ -12,7 +12,8 @@ export type UnitType =
   | 'ai_vs_real'
   | 'dub_sync'
   | 'drag_to_rank'
-  | 'span_highlight';
+  | 'span_highlight'
+  | 'ai_output_rating';
 
 export type UnitPool = 'public' | 'technical';
 
@@ -111,7 +112,7 @@ export function listUnits(): Unit[] {
   return rows.map(r => JSON.parse(r.json) as Unit);
 }
 
-export function pickNextUnit(raterId: string, pool: UnitPool = 'public'): Unit {
+export function pickNextUnit(raterId: string, pool: UnitPool = 'public', siteKey?: string): Unit {
   // D12: anon raters only get the public pool. technical pool is paid-rater only.
   const all = db
     .prepare('SELECT id, json FROM units WHERE pool = ?')
@@ -121,8 +122,27 @@ export function pickNextUnit(raterId: string, pool: UnitPool = 'public'): Unit {
     .prepare('SELECT DISTINCT unit_id FROM judgments WHERE rater_id = ?')
     .all(raterId) as { unit_id: string }[];
   const seen = new Set(seenRows.map(s => s.unit_id));
+
+  // D32: site_key affinity. site_keys like `pk_img_*` are image-rating operators;
+  // bias them toward ai_output_rating units with image_url, falling back to mixed
+  // pool only if none available. keeps raters in the right mental mode.
+  type Row = { id: string; json: string };
+  const prefer = (rows: Row[]): Row[] => rows.filter(r => {
+    try {
+      const u = JSON.parse(r.json) as any;
+      return u.type === 'ai_output_rating' && typeof u.image_url === 'string';
+    } catch { return false; }
+  });
+
   const unseen = all.filter(u => !seen.has(u.id));
-  const pickFrom = unseen.length ? unseen : all;
+  let pickFrom: Row[];
+  if (siteKey && siteKey.startsWith('pk_img_')) {
+    const unseenImg = prefer(unseen);
+    const allImg = prefer(all);
+    pickFrom = unseenImg.length ? unseenImg : (allImg.length ? allImg : (unseen.length ? unseen : all));
+  } else {
+    pickFrom = unseen.length ? unseen : all;
+  }
   const row = pickFrom[Math.floor(Math.random() * pickFrom.length)];
   return JSON.parse(row.json) as Unit;
 }

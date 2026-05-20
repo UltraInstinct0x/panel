@@ -44,11 +44,78 @@ a next.js 14 app. sqlite persistence. iframe SDK.
 | `/embed` | iframe SDK with postMessage handshake |
 | `/dashboard` | rater log, trust score, agreement rate |
 | `/operator` | operator key, embed snippet, dataset preview |
-| `/api/units/next` | returns one unit from the public taste pool |
+| `/api/units/next` | returns one unit from the public taste pool (site_key affinity: `pk_img_*` prefers `ai_output_rating` with images) |
+| `/api/units/ingest` | operator pushes AI outputs into the queue (HMAC, per-site secret) |
+| `/api/units/score` | operator reads aggregate score for a unit (HMAC, by `ref` or `id`) |
 | `/api/judgments` | accepts a judgment, returns attestation token |
 | `/api/verify` | server-side token verification (operator-key auth) |
+| `/v1.js` | drop-in widget loader (pill mode default, modal expands on click) |
 
-unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick. honeypot variants of each.
+unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold). honeypot variants of taste pool units.
+
+## operator integration — closing the feedback loop
+
+panel isn't just a captcha. for operators running real AI workflows (image gen, copy gen, code agents), every output their pipeline produces can become a rateable unit. captcha-solvers rate the operator's prior outputs → the operator gets continuous quality telemetry on the same loop that verifies humanness.
+
+### the wedge
+
+| feature | turnstile / hcaptcha | panel |
+|---|---|---|
+| proof of humanity | ✓ | ✓ |
+| feedback signal on operator's actual outputs | ✗ | ✓ |
+| quality score per artifact, queryable by ref | ✗ | ✓ |
+| dataset operator keeps | ✗ | ✓ |
+
+### embed (the new compact pill UI)
+
+```html
+<script src="https://panel.goku.codes/v1.js" defer></script>
+<div data-panel-sitekey="pk_yoursite_xxxx" data-panel-pool="public"></div>
+```
+
+renders as a ~240px-wide pill (`verify you're human`). click → modal overlay with the unit. solve → token → pill turns green (`verified`) → modal auto-closes. token fires on `panel:solved` custom event and via `onSolved(token, info)` callback when programmatically rendered.
+
+modes:
+- `data-panel-mode="pill"` (default) — Cloudflare-Turnstile-shape compact widget
+- `data-panel-mode="inline"` — full inline iframe (legacy)
+
+### feed your outputs back into the queue (HMAC-signed)
+
+```http
+POST https://panel.goku.codes/api/units/ingest
+X-Panel-Site-Key: pk_yoursite_xxxx
+X-Panel-Ingest-Sig: <hmac-sha256-hex of raw body, using PANEL_INGEST_SECRET_<UPPER_SITEKEY>>
+Content-Type: application/json
+
+{
+  "units": [{
+    "external_ref": "your-stable-artifact-id",
+    "image_url": "https://your.cdn/output.png",
+    "op_label": "remove_bg",
+    "prompt_context": "input=src.png"
+  }]
+}
+```
+
+returns `{ ok, accepted, ids: ["u_ing_..."] }`. unit becomes a `ai_output_rating` job rendered as a 4-pill grid (good / meh / broken / spam).
+
+### read aggregate score
+
+```
+GET /api/units/score?ref=<external_ref>&site=<site_key>
+X-Panel-Site-Key: pk_yoursite_xxxx
+X-Panel-Ingest-Sig: <hmac of canonical string: "GET\n/api/units/score\nref=<r>\nid=\nsite=<k>">
+```
+
+returns `{ ok, unit_id, external_ref, n, counts: {good,meh,broken,spam}, score, quality, last_judged_at }`.
+
+### per-site secret naming convention
+
+operator secret env vars on panel: `PANEL_INGEST_SECRET_<UPPERCASE_SITEKEY_DASHES_TO_UNDERSCORES>`. e.g. site_key `pk_img_3e9b8c028d0e` → `PANEL_INGEST_SECRET_PK_IMG_3E9B8C028D0E`. fallback: global `PANEL_INGEST_SECRET`.
+
+### live integration
+
+`img.goku.codes` runs panel in production as the captcha gate on uploads. every Modal AI op output (upscale, remove_bg, etc.) is auto-ingested and rateable. quality readback at `https://img.goku.codes/api/quality/<output_key>`.
 
 ## status
 

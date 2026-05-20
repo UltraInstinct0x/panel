@@ -6,6 +6,7 @@ import AiVsReal from './units/AiVsReal';
 import DubSync from './units/DubSync';
 import DragRank from './units/DragRank';
 import SpanHighlight from './units/SpanHighlight';
+import ImageRating from './units/ImageRating';
 import Default from './units/Default';
 import type { RendererUnit } from './units/types';
 
@@ -311,6 +312,9 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
       break;
     case 'span_highlight':
       renderer = <SpanHighlight unit={unit} onAnswer={submit} disabled={tooFast} selection={spanSel} setSelection={setSpanSel} />;
+      break;
+    case 'ai_output_rating':
+      renderer = <ImageRating unit={unit} onAnswer={submit} disabled={tooFast} />;
       break;
     default:
       renderer = <Default unit={unit} onAnswer={submit} disabled={tooFast} />;

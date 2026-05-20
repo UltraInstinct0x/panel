@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'technical_pool_requires_trust_tier' }, { status: 403 });
   }
   getOrCreateRater(rater_id);
-  const u = pickNextUnit(rater_id, poolParam);
+  const u = pickNextUnit(rater_id, poolParam, auth.site_key);
   // strip gold + honeypot internals before sending
   const { gold, obvious_wrong_answer, is_honeypot, ...safe } = u;
 
