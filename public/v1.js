@@ -440,15 +440,16 @@
       if (ev.origin !== ORIGIN) return;
       var d = ev.data;
       if (d.type === 'panel:solved' && d.token) {
+        // important: multiple widgets can live on one page. only the widget
+        // with an active popover should accept iframe solved messages.
+        if (!pop) return;
         fireSolved(d.token, d.trust, currentTier || 'C1');
-        if (pop) {
-          // brief linger so the user sees the green flash, then close.
-          setTimeout(function () {
-            if (!pop) return;
-            pop.setAttribute('data-state', 'closing');
-            setTimeout(closePop, 220);
-          }, 450);
-        }
+        // brief linger so the user sees the green flash, then close.
+        setTimeout(function () {
+          if (!pop) return;
+          pop.setAttribute('data-state', 'closing');
+          setTimeout(closePop, 220);
+        }, 450);
       }
     }
     window.addEventListener('message', onMsg);
