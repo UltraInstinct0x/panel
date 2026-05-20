@@ -28,6 +28,9 @@ export type RendererUnit = {
   audio_offset_ms?: number;
   items?: { label: string; text: string }[];
   passage?: string;
+  tool?: string;
+  args?: unknown;
+  result?: unknown;
   image_url?: string;
   est_seconds: number;
 };

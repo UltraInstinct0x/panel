@@ -20,11 +20,18 @@ export default function Default({ unit, onAnswer, disabled }: RendererProps) {
   const codey = !!(uniqueChoices.length && uniqueChoices.some(c => /\n|def |function |\$|=>/.test(c.text)));
   const binaryLikeChoices = uniqueChoices.length > 0 && uniqueChoices.length <= 2;
   const showChoices = uniqueChoices.length > 0 && !(unit.binary && binaryLikeChoices);
+  const detail = unit.passage || unit.prompt_context || (
+    unit.tool ? `tool: ${unit.tool}\nargs: ${JSON.stringify(unit.args ?? null)}\nresult: ${JSON.stringify(unit.result ?? null)}` : ''
+  );
 
   return (
     <div className="u-def">
       {unit.diff && (
         <pre className="u-def-diff">{renderDiff(unit.diff)}</pre>
+      )}
+
+      {detail && (
+        <pre className="u-por-text" style={{ marginBottom: 12, maxHeight: 220, overflow: 'auto' }}>{String(detail)}</pre>
       )}
 
       {showChoices && (

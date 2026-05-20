@@ -36,6 +36,15 @@ export function approxTokens(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function safeJson(v: any): string {
+  try {
+    if (typeof v === 'string') return v;
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
 const PROSE_HANDOFF_MIN_TOKENS = 120;
 
 // detect diff hunks in a string body. unified-diff style: lines starting
@@ -108,12 +117,19 @@ export function splitStructural(blob: any): SplitResult {
         const name = tc?.name || tc?.function?.name || tc?.tool || 'tool';
         const args = tc?.arguments ?? tc?.args ?? tc?.input ?? null;
         const result = tc?.result ?? tc?.output ?? null;
+        const toolBlock = [
+          `tool: ${name}`,
+          `args: ${safeJson(args)}`,
+          `result: ${safeJson(result)}`,
+        ].join('\n');
         cands.push({
           type: 'step_validity',
           payload: {
             tool: name,
             args,
             result,
+            passage: toolBlock,
+            prompt_context: toolBlock,
             question: `did this tool call match the user's intent?`,
             binary: { yes: 'yes', no: 'no' },
           },
