@@ -365,9 +365,8 @@
           if (currentTier === 'C1') {
             pill.querySelector('.pnl-label').textContent = 'tap to finish verify';
           } else {
-            // C2/C3: open popover after a beat so user sees the pill first.
-            pill.querySelector('.pnl-label').textContent = 'verify (' + currentTier.toLowerCase() + ')';
-            setTimeout(function () { openPopoverWith(resp); }, 250);
+            // C2/C3: do not auto-open. explicit user click invokes challenge.
+            pill.querySelector('.pnl-label').textContent = 'tap to verify (' + currentTier.toLowerCase() + ')';
           }
         }
       }).catch(function () {
