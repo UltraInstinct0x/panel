@@ -231,7 +231,6 @@
     };
     var pop = null;
     var iframe = null;
-    var activeFrameWindow = null;
     var challengeToken = null;
     var raterId = null;
     var currentTier = null;
@@ -309,7 +308,6 @@
       iframe.setAttribute('scrolling', 'auto');
       iframe.src = buildSrc({ site_key: siteKey, pool: pool });
       pop.appendChild(iframe);
-      activeFrameWindow = iframe.contentWindow || activeFrameWindow;
       document.body.appendChild(pop);
       requestAnimationFrame(position);
       window.addEventListener('resize', position);
@@ -442,9 +440,9 @@
       if (ev.origin !== ORIGIN) return;
       var d = ev.data;
       if (d.type === 'panel:solved' && d.token) {
-        // important: multiple widgets can live on one page. only accept solved
-        // events coming from this widget's iframe window.
-        if (activeFrameWindow && ev.source !== activeFrameWindow) return;
+        // important: multiple widgets can live on one page. accept solves only
+        // from this widget's live iframe window (not a cached window ref).
+        if (iframe && iframe.contentWindow && ev.source !== iframe.contentWindow) return;
         fireSolved(d.token, d.trust, currentTier || 'C1');
         // brief linger so the user sees the green flash, then close.
         setTimeout(function () {
