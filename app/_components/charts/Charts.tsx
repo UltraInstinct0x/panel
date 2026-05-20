@@ -34,7 +34,7 @@ export function SparkArea({
         />
         <YAxis
           stroke={AXIS} tick={{ fill: AXIS, fontSize: 11 }} tickLine={false}
-          axisLine={false} width={36}
+          axisLine={false} width={48}
           tickFormatter={(v) => valueFormatter ? valueFormatter(v) : String(v)}
         />
         <Tooltip
@@ -59,7 +59,7 @@ export function SparkLine({
       <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey={xKey} stroke={AXIS} tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={{ stroke: GRID }} />
-        <YAxis stroke={AXIS} tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} width={36}
+        <YAxis stroke={AXIS} tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} width={48}
           tickFormatter={(v) => valueFormatter ? valueFormatter(v) : String(v)} domain={[0, 100]} />
         <Tooltip cursor={{ stroke: 'rgba(255,255,255,0.12)' }} content={<ChartTooltipContent valueFormatter={valueFormatter} />} />
         <Line type="monotone" dataKey={yKey} stroke={color} strokeWidth={1.5} dot={{ r: 2, fill: color, stroke: 'transparent' }} isAnimationActive={false} />

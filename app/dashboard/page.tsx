@@ -52,7 +52,7 @@ export default function DashboardPage() {
               <StatCard label="judgments" value={fmt.int(rater.judgments_count)} sub={<span className="faint">{fmt.int(rater.agreed_count)} matched gold</span>} />
               <StatCard label="trust score" value={fmt.pct1(rater.trust * 100)} sub={<span className="faint">starts at 50.0%</span>} />
               <StatCard label="agreement" value={fmt.pct1(agreementPct)} sub={<span className="faint">lifetime gold match</span>} />
-              <StatCard label="earned" value={fmt.dollars(rater.earned_cents)} sub={<span className="faint">{fmt.centsEa(rater.earned_cents / Math.max(1, rater.judgments_count) * 100)}</span>} />
+              <StatCard label="earned" value={fmt.dollars(rater.earned_cents)} sub={<span className="faint">{fmt.centsEa(rater.earned_cents / Math.max(1, rater.judgments_count))}</span>} />
             </>
           )}
         </div>
