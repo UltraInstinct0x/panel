@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       </header>
 
       <div style={sx.warn}>
-        <strong>DRAFT.</strong> this policy has not been reviewed by counsel. do not rely on it for legal purposes. lawyer review required before publication.
+        <strong>v0 — pending counsel review.</strong> reflects current panel data practices. wording may change after legal review. for questions: <code>privacy@goku.codes</code>.
       </div>
 
       <section>
@@ -187,7 +187,7 @@ export default function PrivacyPage() {
       </section>
 
       <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #222', fontSize: 11, color: '#707070' }}>
-        <Link href="/terms">terms</Link> · <Link href="/docs">docs</Link> · <Link href="/">home</Link>
+        <Link href="/legal/terms">terms</Link> · <Link href="/legal/dpa">DPA</Link> · <Link href="/legal/sub-processors">sub-processors</Link> · <Link href="/legal/cookies">cookies</Link> · <Link href="/docs">docs</Link> · <Link href="/">home</Link>
       </footer>
     </main>
   );

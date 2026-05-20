@@ -4,10 +4,12 @@ export default function Nav() {
   return (
     <nav className="topbar">
       <Link href="/" className="brand">▰ panel</Link>
-      <Link href="/demo/gate">demo</Link>
-      <Link href="/widget?embed=true">widget</Link>
+      <Link href="/demo/agent">agent demo</Link>
+      <Link href="/demo/gate">gate demo</Link>
+      <Link href="/pricing">pricing</Link>
       <Link href="/dashboard">dashboard</Link>
       <Link href="/operator">operator</Link>
+      <Link href="/privacy">privacy</Link>
       <a href="https://github.com/UltraInstinct0x/panel" target="_blank" rel="noreferrer">github</a>
     </nav>
   );
