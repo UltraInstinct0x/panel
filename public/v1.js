@@ -171,7 +171,6 @@
     var u = new URL(ORIGIN + '/embed');
     if (opts.site_key) u.searchParams.set('site_key', opts.site_key);
     if (opts.pool) u.searchParams.set('pool', opts.pool);
-    if (opts.wid) u.searchParams.set('wid', opts.wid);
     u.searchParams.set('h', Math.random().toString(36).slice(2, 8));
     return u.toString();
   }
@@ -206,7 +205,6 @@
 
   function renderPill(el, ctx) {
     var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts, forceTier = ctx.forceTier, bootDelayMs = Number(ctx.bootDelayMs || 2500);
-    var widgetId = 'wid_' + Math.random().toString(36).slice(2, 10);
     var pill = document.createElement('button');
     pill.type = 'button';
     pill.className = 'pnl-pill';
@@ -308,7 +306,7 @@
       iframe.title = 'panel — captcha / feedback';
       iframe.setAttribute('allowtransparency', 'true');
       iframe.setAttribute('scrolling', 'auto');
-      iframe.src = buildSrc({ site_key: siteKey, pool: pool, wid: widgetId });
+      iframe.src = buildSrc({ site_key: siteKey, pool: pool });
       pop.appendChild(iframe);
       document.body.appendChild(pop);
       requestAnimationFrame(position);
@@ -442,7 +440,6 @@
       if (ev.origin !== ORIGIN) return;
       var d = ev.data;
       if (d.type === 'panel:solved' && d.token) {
-        if (d.wid && d.wid !== widgetId) return;
         // important: multiple widgets can live on one page. only the widget
         // with an active popover should accept iframe solved messages.
         if (!pop) return;
@@ -478,9 +475,8 @@
 
   function renderInline(el, ctx) {
     var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts;
-    var widgetId = 'wid_' + Math.random().toString(36).slice(2, 10);
     var iframe = document.createElement('iframe');
-    iframe.src = buildSrc({ site_key: siteKey, pool: pool, wid: widgetId });
+    iframe.src = buildSrc({ site_key: siteKey, pool: pool });
     iframe.title = 'panel — captcha / feedback';
     iframe.setAttribute('allowtransparency', 'true');
     iframe.style.cssText = 'width:100%;min-height:420px;border:0;background:transparent;display:block;border-radius:10px';
@@ -492,14 +488,13 @@
       if (ev.origin !== ORIGIN) return;
       var d = ev.data;
       if (d.type === 'panel:solved' && d.token) {
-        if (d.wid && d.wid !== widgetId) return;
         widget.token = d.token; widget.info = { trust: d.trust };
         try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: d.token, trust: d.trust }); } catch (_) {}
         try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: d.token, trust: d.trust }, bubbles: true })); } catch (_) {}
       }
     }
     window.addEventListener('message', onMsg);
-    widget.reset = function () { iframe.src = buildSrc({ site_key: siteKey, pool: pool, wid: widgetId }); widget.token = null; widget.info = null; };
+    widget.reset = function () { iframe.src = buildSrc({ site_key: siteKey, pool: pool }); widget.token = null; widget.info = null; };
     widget.destroy = function () { window.removeEventListener('message', onMsg); try { el.removeChild(iframe); } catch (_) {} };
     return widget;
   }

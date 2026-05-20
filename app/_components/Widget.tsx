@@ -33,7 +33,6 @@ type WidgetProps = {
   onSolved?: (result: { trust: number; earned_cents: number; token: string }) => void;
   siteKey?: string;
   pool?: 'public' | 'technical';
-  widgetId?: string;
   // captcha = embedded as a gate. one solve and you're done; no "solve another".
   // rater   = dashboard / standalone grind page. show "solve another".
   mode?: WidgetMode;
@@ -43,7 +42,7 @@ const ENGAGEMENT_MIN_MS = 2500;
 const MOUSE_THROTTLE_MS = 50;
 const FOCUS_POLL_MS = 250;
 
-export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public', mode = 'captcha', widgetId = '' }: WidgetProps) {
+export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public', mode = 'captcha' }: WidgetProps) {
   const [unit, setUnit] = useState<Unit | null>(null);
   const [loading, setLoading] = useState(true);
   const [shownAt, setShownAt] = useState<number>(0);
@@ -194,7 +193,7 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
       setSolved(s);
       if (onSolved) onSolved({ trust: s.trust, earned_cents: s.earned_cents, token: s.token });
       if (typeof window !== 'undefined' && window.parent !== window) {
-        window.parent.postMessage({ type: 'panel:solved', token: s.token, trust: s.trust, wid: widgetId || undefined }, '*');
+        window.parent.postMessage({ type: 'panel:solved', token: s.token, trust: s.trust }, '*');
       }
     } catch (e: any) {
       setError(String(e?.message || e));
