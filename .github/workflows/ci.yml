@@ -30,6 +30,14 @@ jobs:
       - name: install
         run: pnpm install --frozen-lockfile=false
 
+      - name: rebuild native deps
+        run: pnpm rebuild better-sqlite3
+
+      - name: verify native binding
+        run: |
+          test -f node_modules/better-sqlite3/build/Release/better_sqlite3.node \
+            || (echo "better-sqlite3 native binding missing — pnpm onlyBuiltDependencies broken" && exit 1)
+
       - name: typecheck
         run: pnpm exec tsc --noEmit
 
