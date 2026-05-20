@@ -1,5 +1,6 @@
 // sqlite-backed store. API-compatible with the prior in-memory PoC.
 import { db } from './db';
+import { seedUnitsAll } from './seed_units';
 
 export type UnitType =
   | 'pairwise_trace'
@@ -9,7 +10,9 @@ export type UnitType =
   | 'taste_rank'
   | 'sarcasm_detect'
   | 'ai_vs_real'
-  | 'dub_sync';
+  | 'dub_sync'
+  | 'drag_to_rank'
+  | 'span_highlight';
 
 export type UnitPool = 'public' | 'technical';
 
@@ -28,6 +31,12 @@ export interface Unit {
   // dub_sync extras
   video_url?: string;
   audio_offset_ms?: number;
+  // drag_to_rank extras: items to rank + canonical ranking like "A,B,C,D"
+  items?: PairwiseChoice[];
+  gold_ranking?: string;
+  // span_highlight extras: passage + acceptable char ranges as ["start-end", ...]
+  passage?: string;
+  gold_spans?: string[];
   gold?: string;
   // honeypot: seeded units where the "obvious LLM answer" is wrong by design.
   is_honeypot?: boolean;
@@ -87,7 +96,7 @@ function seedIfEmpty() {
       ins.run(u.id, JSON.stringify(u), u.pool, u.is_honeypot ? 1 : 0, now);
     }
   });
-  tx(seedUnits());
+  tx(seedUnitsAll());
 }
 
 // ---------- unit access ----------
@@ -141,7 +150,7 @@ export function recordJudgment(input: {
   if (!unit) throw new Error('unit not found');
   const rater = getOrCreateRater(input.rater_id);
 
-  const agreed = unit.gold ? input.choice === unit.gold : null;
+  const agreed = computeAgreement(unit, input.choice);
   const honeypot_failed =
     !!unit.is_honeypot && !!unit.obvious_wrong_answer && input.choice === unit.obvious_wrong_answer;
 
@@ -247,170 +256,33 @@ export function stats(): {
   };
 }
 
-// ---------- seed data ----------
+// ---------- agreement scoring ----------
 
-function seedUnits(): Unit[] {
-  return [
-    // ===== technical pool (D12: flagship-solvable, paid trust pipeline only) =====
-    {
-      id: 'u_pair_001', type: 'pairwise_trace', pool: 'technical', source_agent: 'opencode/atlas',
-      prompt_context: 'goal: write a python function that returns the nth fibonacci number',
-      question: 'which response is better?',
-      choices: [
-        { label: 'A', text: 'def fib(n):\n    if n < 2: return n\n    return fib(n-1) + fib(n-2)' },
-        { label: 'B', text: 'def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a' },
-      ],
-      gold: 'B', est_seconds: 8,
-    },
-    {
-      id: 'u_step_001', type: 'step_validity', pool: 'technical', source_agent: 'paperclip/librarian',
-      prompt_context: 'goal: find the original publication date of "The Brothers Karamazov"\nprevious step output: result is 1880',
-      question: 'next tool call: web_search("dostoevsky karamazov publication"). is this valid given the goal?',
-      binary: { yes: 'yes — sensible verification step', no: 'no — wasteful, already answered' },
-      gold: 'no', est_seconds: 6,
-    },
-    {
-      id: 'u_step_002', type: 'step_validity', pool: 'technical', source_agent: 'opencode/atlas',
-      prompt_context: 'goal: refactor user.controller.ts to use the new auth middleware\nfile location: src/controllers/user.controller.ts',
-      question: 'next tool call: read_file("src/middleware/auth.ts"). valid?',
-      binary: { yes: 'yes — needs to see the middleware interface', no: 'no — irrelevant file' },
-      gold: 'yes', est_seconds: 6,
-    },
-    {
-      id: 'u_skill_001', type: 'skill_diff', pool: 'technical', source_agent: 'hermes/skills/devops/oracle-cloud-vm-ops',
-      prompt_context: 'proposed edit to the "VM disk expansion" section of oracle-cloud-vm-ops:',
-      question: 'is this skill update an improvement?',
-      diff: ` ## VM disk expansion\n \n-Run growpart and resize2fs after expanding via console.\n+Run \`sudo growpart /dev/sda 1\` then \`sudo resize2fs /dev/sda1\` after expanding via console.\n+\n+**Gotcha:** if the partition is in use, growpart may need \`--no-relabel\`. Common when iSCSI is mounted.\n \n Verify with \`df -h\`.`,
-      binary: { yes: 'yes — more actionable, adds gotcha', no: 'no — adds noise' },
-      gold: 'yes', est_seconds: 12,
-    },
-    {
-      id: 'u_skill_002', type: 'skill_diff', pool: 'technical', source_agent: 'hermes/skills/research/arxiv',
-      prompt_context: 'proposed edit to the "search filters" section of arxiv:',
-      question: 'is this skill update an improvement?',
-      diff: ` ## Search filters\n \n-You can filter by category and date.\n+You can probably filter by various things, see docs.`,
-      binary: { yes: 'yes', no: 'no — strictly less useful' },
-      gold: 'no', est_seconds: 10,
-    },
-    {
-      id: 'u_hall_001', type: 'hallucination_flag', pool: 'technical', source_agent: 'opencode/atlas',
-      prompt_context: 'agent claim: "the Next.js 14 App Router uses the new `useFormState` hook from React 19 to handle server actions, which was released alongside Next.js 14 in October 2023."',
-      question: 'does this look fabricated?',
-      binary: { yes: 'yes — at least one claim wrong', no: 'no — looks correct' },
-      gold: 'yes', est_seconds: 10,
-    },
-    {
-      id: 'u_pair_003', type: 'pairwise_trace', pool: 'technical', source_agent: 'kanban/worker',
-      prompt_context: 'goal: write a one-line bash that finds the 5 largest files in /var/log',
-      question: 'which command is correct AND idiomatic?',
-      choices: [
-        { label: 'A', text: 'du -ah /var/log 2>/dev/null | sort -hr | head -5' },
-        { label: 'B', text: 'find /var/log -type f -exec ls -la {} \\; | sort -k5 -nr | head -5' },
-      ],
-      gold: 'A', est_seconds: 9,
-    },
-
-    // ===== public pool (D12: taste/perception/cultural — flagships cannot reliably solve) =====
-    {
-      id: 'u_taste_001', type: 'taste_rank', pool: 'public', source_agent: 'hermes/clawd',
-      prompt_context: 'task: rewrite "the agent did not find any relevant results in the database" for clarity',
-      question: 'click your favorite. one click, no analysis.',
-      choices: [
-        { label: 'A', text: 'No matching records found.' },
-        { label: 'B', text: 'The agent failed to locate results.' },
-        { label: 'C', text: 'Zero relevant rows in the database.' },
-      ],
-      gold: 'A', est_seconds: 6,
-    },
-    {
-      id: 'u_taste_002', type: 'taste_rank', pool: 'public', source_agent: 'hermes/clawd',
-      prompt_context: 'task: write a one-line product tagline for a meditation app',
-      question: 'which feels least like AI slop?',
-      choices: [
-        { label: 'A', text: 'Unlock your inner peace and discover the journey within.' },
-        { label: 'B', text: 'Ten minutes. Then back to your life.' },
-        { label: 'C', text: 'Empowering mindfulness through transformative meditation experiences.' },
-      ],
-      gold: 'B', est_seconds: 6,
-    },
-    {
-      id: 'u_sarc_001', type: 'sarcasm_detect', pool: 'public', source_agent: 'social/feed',
-      prompt_context: 'tweet from a developer after a 6-hour outage: "love when our prod DB decides to take a personal day"',
-      question: 'is this sarcastic?',
-      binary: { yes: 'yes — sarcastic', no: 'no — sincere' },
-      gold: 'yes', est_seconds: 5,
-    },
-    {
-      id: 'u_sarc_002', type: 'sarcasm_detect', pool: 'public', source_agent: 'social/feed',
-      // honeypot: looks sarcastic to an LLM scanning surface markers, but is sincere given context.
-      prompt_context: 'reply from a junior dev who just shipped their first PR: "honestly this is the best day of my week, no joke"',
-      question: 'is this sarcastic?',
-      binary: { yes: 'yes — sarcastic', no: 'no — sincere' },
-      gold: 'no',
-      is_honeypot: true, obvious_wrong_answer: 'yes',
-      est_seconds: 5,
-    },
-    {
-      id: 'u_aivr_001', type: 'ai_vs_real', pool: 'public', source_agent: 'content/feed',
-      prompt_context: 'short product description: "Our innovative solution leverages cutting-edge technology to deliver unparalleled value to discerning customers seeking premium experiences."',
-      question: 'AI-written or human?',
-      binary: { yes: 'AI', no: 'human' },
-      gold: 'yes', est_seconds: 5,
-    },
-    {
-      id: 'u_aivr_002', type: 'ai_vs_real', pool: 'public', source_agent: 'content/feed',
-      prompt_context: 'reddit comment: "got the part in for $14 off ebay, took me like an hour with a torx bit. dishwasher works. would not recommend if you havent done it before tho, theres a spring that wants to murder you"',
-      question: 'AI-written or human?',
-      binary: { yes: 'AI', no: 'human' },
-      gold: 'no', est_seconds: 5,
-    },
-    {
-      id: 'u_taste_003', type: 'taste_rank', pool: 'public', source_agent: 'design/ui-copy',
-      prompt_context: 'error toast for a failed payment',
-      question: 'which would you rather see as a user?',
-      choices: [
-        { label: 'A', text: 'An unexpected error occurred. Please try again.' },
-        { label: 'B', text: 'Card declined. The bank didn’t say why — try another?' },
-        { label: 'C', text: 'Transaction processing failed due to upstream issues.' },
-      ],
-      gold: 'B', est_seconds: 6,
-    },
-    // honeypot in taste pool: the "obviously most polished" option is corporate slop.
-    {
-      id: 'u_taste_004', type: 'taste_rank', pool: 'public', source_agent: 'design/ui-copy',
-      prompt_context: 'empty state for a notes app with zero notes',
-      question: 'which has the most personality?',
-      choices: [
-        { label: 'A', text: 'You have no notes yet. Click "New" to create your first note.' },
-        { label: 'B', text: 'nothing here. that’s ok.' },
-        { label: 'C', text: 'Welcome to your notes! Get started by creating your first note today.' },
-      ],
-      gold: 'B',
-      is_honeypot: true, obvious_wrong_answer: 'C',
-      est_seconds: 6,
-    },
-    {
-      id: 'u_dub_001', type: 'dub_sync', pool: 'public', source_agent: 'video/dub-pipeline',
-      prompt_context: 'short clip with a dubbed track. play it, then judge.',
-      question: 'does the dub sync to the on-screen action?',
-      binary: { yes: 'yes — in sync', no: 'no — drifts' },
-      video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      audio_offset_ms: 240,
-      gold: 'no', est_seconds: 10,
-    },
-    // honeypot dub: offset is small and surface-cue-free; an LLM with only metadata flips on the number.
-    {
-      id: 'u_dub_002', type: 'dub_sync', pool: 'public', source_agent: 'video/dub-pipeline',
-      prompt_context: 'second clip. same prompt.',
-      question: 'does the dub sync to the on-screen action?',
-      binary: { yes: 'yes — in sync', no: 'no — drifts' },
-      video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      audio_offset_ms: 80,
-      gold: 'yes', // within human-perceptible tolerance ~ ±100ms
-      is_honeypot: true, obvious_wrong_answer: 'no',
-      est_seconds: 10,
-    },
-  ];
+function computeAgreement(unit: Unit, choice: string): boolean | null {
+  if (unit.type === 'drag_to_rank') {
+    if (!unit.gold_ranking) return null;
+    // exact-order match for now; could relax to kendall-tau distance later.
+    return choice.trim().toUpperCase() === unit.gold_ranking.trim().toUpperCase();
+  }
+  if (unit.type === 'span_highlight') {
+    if (!unit.gold_spans || unit.gold_spans.length === 0) return null;
+    // choice format: "start-end". accept any gold span if overlap >= 60% of either side.
+    const m = /^(\d+)-(\d+)$/.exec(choice.trim());
+    if (!m) return false;
+    const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+    const [aLo, aHi] = a <= b ? [a, b] : [b, a];
+    const aLen = Math.max(1, aHi - aLo);
+    for (const g of unit.gold_spans) {
+      const gm = /^(\d+)-(\d+)$/.exec(g);
+      if (!gm) continue;
+      const gLo = parseInt(gm[1], 10), gHi = parseInt(gm[2], 10);
+      const gLen = Math.max(1, gHi - gLo);
+      const overlap = Math.max(0, Math.min(aHi, gHi) - Math.max(aLo, gLo));
+      if (overlap / aLen >= 0.6 || overlap / gLen >= 0.6) return true;
+    }
+    return false;
+  }
+  return unit.gold ? choice === unit.gold : null;
 }
 
 // run seed on module import

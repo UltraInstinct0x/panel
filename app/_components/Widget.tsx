@@ -1,9 +1,14 @@
 'use client';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+
+type UnitType =
+  | 'pairwise_trace' | 'step_validity' | 'skill_diff' | 'hallucination_flag'
+  | 'taste_rank' | 'sarcasm_detect' | 'ai_vs_real' | 'dub_sync'
+  | 'drag_to_rank' | 'span_highlight';
 
 type Unit = {
   id: string;
-  type: 'pairwise_trace' | 'step_validity' | 'skill_diff' | 'hallucination_flag' | 'taste_rank' | 'sarcasm_detect' | 'ai_vs_real' | 'dub_sync';
+  type: UnitType;
   pool: 'public' | 'technical';
   source_agent: string;
   prompt_context: string;
@@ -13,6 +18,8 @@ type Unit = {
   diff?: string;
   video_url?: string;
   audio_offset_ms?: number;
+  items?: { label: string; text: string }[];
+  passage?: string;
   est_seconds: number;
 };
 
@@ -41,43 +48,54 @@ type WidgetProps = {
 };
 
 const ENGAGEMENT_MIN_MS = 2500;
+const MOUSE_THROTTLE_MS = 50;
+const FOCUS_POLL_MS = 250;
 
 export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public' }: WidgetProps) {
   const [unit, setUnit] = useState<Unit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mountedAt] = useState<number>(() => (typeof performance !== 'undefined' ? performance.now() : 0));
   const [shownAt, setShownAt] = useState<number>(0);
   const [solved, setSolved] = useState<{ trust: number; trust_delta: number; earned_cents: number; agreed: boolean | null; honeypot_failed: boolean; behavioral_score: number; token: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skipCount, setSkipCount] = useState(0);
   const [now, setNow] = useState<number>(0);
 
-  // behavioral collector — D13.1 floor.
+  // drag_to_rank local order state
+  const [order, setOrder] = useState<string[]>([]);
+  // span_highlight local selection
+  const [spanSel, setSpanSel] = useState<{ start: number; end: number } | null>(null);
+
+  // ---- behavioral collector — D13 layer 1, REAL signals only ----
   const behavioralRef = useRef({
     samples: 0,
-    lastX: 0,
-    lastY: 0,
-    lastT: 0,
+    lastX: 0, lastY: 0, lastT: 0, lastSampleT: 0,
     totalDist: 0,
-    speedAccum: 0,
-    speedSamples: 0,
+    speedAccum: 0, speedSamples: 0,
     dirChanges: 0,
-    lastDx: 0,
-    lastDy: 0,
+    lastDx: 0, lastDy: 0,
     focusEvents: 0,
+    lastFocusState: typeof document !== 'undefined' ? document.hasFocus() : true,
+    mountedAt: typeof performance !== 'undefined' ? performance.now() : 0,
   });
 
   const resetBehavioral = useCallback(() => {
     behavioralRef.current = {
-      samples: 0, lastX: 0, lastY: 0, lastT: 0,
+      samples: 0, lastX: 0, lastY: 0, lastT: 0, lastSampleT: 0,
       totalDist: 0, speedAccum: 0, speedSamples: 0,
-      dirChanges: 0, lastDx: 0, lastDy: 0, focusEvents: 0,
+      dirChanges: 0, lastDx: 0, lastDy: 0,
+      focusEvents: 0,
+      lastFocusState: typeof document !== 'undefined' ? document.hasFocus() : true,
+      mountedAt: typeof performance !== 'undefined' ? performance.now() : 0,
     };
   }, []);
 
+  // mousemove — throttled to 50ms
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const b = behavioralRef.current;
       const t = performance.now();
+      if (t - b.lastSampleT < MOUSE_THROTTLE_MS) return;
       if (b.samples > 0) {
         const dx = e.clientX - b.lastX;
         const dy = e.clientY - b.lastY;
@@ -89,21 +107,32 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
         if ((dx * b.lastDx + dy * b.lastDy) < 0) b.dirChanges += 1;
         b.lastDx = dx; b.lastDy = dy;
       }
-      b.lastX = e.clientX; b.lastY = e.clientY; b.lastT = t; b.samples += 1;
+      b.lastX = e.clientX; b.lastY = e.clientY; b.lastT = t; b.lastSampleT = t; b.samples += 1;
     };
-    const onFocus = () => { behavioralRef.current.focusEvents += 1; };
     window.addEventListener('mousemove', onMove, { passive: true });
-    window.addEventListener('focusin', onFocus);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('focusin', onFocus);
-    };
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
+  // focus transitions — poll document.hasFocus() every 250ms
+  useEffect(() => {
+    const i = setInterval(() => {
+      if (typeof document === 'undefined') return;
+      const cur = document.hasFocus();
+      const b = behavioralRef.current;
+      if (cur !== b.lastFocusState) {
+        b.focusEvents += 1;
+        b.lastFocusState = cur;
+      }
+    }, FOCUS_POLL_MS);
+    return () => clearInterval(i);
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSolved(null);
+    setOrder([]);
+    setSpanSel(null);
     resetBehavioral();
     try {
       const rid = getRaterId();
@@ -114,6 +143,15 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
       const data = await r.json();
       setUnit(data);
       setShownAt(Date.now());
+      if (data.type === 'drag_to_rank' && Array.isArray(data.items)) {
+        // start in a stable but shuffled order
+        const labels = data.items.map((i: any) => i.label);
+        for (let i = labels.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [labels[i], labels[j]] = [labels[j], labels[i]];
+        }
+        setOrder(labels);
+      }
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -123,7 +161,6 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
 
   useEffect(() => { load(); }, [load]);
 
-  // tick for the engagement-window countdown UI
   useEffect(() => {
     if (!shownAt || solved) return;
     const i = setInterval(() => setNow(Date.now()), 100);
@@ -135,6 +172,7 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
     const rid = getRaterId();
     const latency_ms = Date.now() - shownAt;
     const b = behavioralRef.current;
+    const dwell_ms = Math.round(performance.now() - b.mountedAt);
     const behavioral = {
       mouse_path_summary: {
         sample_count: b.samples,
@@ -142,7 +180,7 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
         avg_speed_px_ms: b.speedSamples ? +(b.speedAccum / b.speedSamples).toFixed(4) : 0,
         direction_changes: b.dirChanges,
       },
-      dwell_ms: latency_ms,
+      dwell_ms,
       focus_events: b.focusEvents,
       viewport: { w: window.innerWidth, h: window.innerHeight },
       ua: navigator.userAgent.slice(0, 200),
@@ -166,7 +204,6 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
       };
       setSolved(s);
       if (onSolved) onSolved({ trust: s.trust, earned_cents: s.earned_cents, token: s.token });
-      // emit to parent frame for iframe SDK use
       if (typeof window !== 'undefined' && window.parent !== window) {
         window.parent.postMessage({ type: 'panel:solved', token: s.token, trust: s.trust }, '*');
       }
@@ -175,10 +212,7 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
     }
   };
 
-  const skip = () => {
-    setSkipCount(s => s + 1);
-    load();
-  };
+  const skip = () => { setSkipCount(s => s + 1); load(); };
 
   if (loading) return <div className="widget"><div className="muted">▰ loading unit…</div></div>;
   if (error) return <div className="widget"><div className="badge badge-danger">error</div> <span className="muted">{error}</span></div>;
@@ -245,16 +279,31 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
 
       {unit.type === 'dub_sync' && unit.video_url && (
         <div style={{ marginBottom: 12 }}>
-          <video
-            src={unit.video_url}
-            controls
-            playsInline
-            style={{ width: '100%', maxHeight: 240, background: '#000' }}
-          />
+          <video src={unit.video_url} controls playsInline style={{ width: '100%', maxHeight: 240, background: '#000' }} />
           <div className="faint" style={{ fontSize: 10, marginTop: 4 }}>
             synthetic audio offset marker in metadata: {unit.audio_offset_ms} ms (PoC — no real A/V manipulation)
           </div>
         </div>
+      )}
+
+      {unit.type === 'drag_to_rank' && unit.items && (
+        <DragRank
+          items={unit.items}
+          order={order}
+          setOrder={setOrder}
+          disabled={tooFast}
+          onSubmit={() => submit(order.join(','))}
+        />
+      )}
+
+      {unit.type === 'span_highlight' && unit.passage && (
+        <SpanHighlight
+          passage={unit.passage}
+          selection={spanSel}
+          setSelection={setSpanSel}
+          disabled={tooFast}
+          onSubmit={(s) => submit(`${s.start}-${s.end}`)}
+        />
       )}
 
       {unit.choices && unit.choices.map(c => (
@@ -280,6 +329,137 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
           {tooFast && <> · engagement window: {(remaining / 1000).toFixed(1)}s</>}
         </span>
         <span className="faint" style={{ fontSize: 10 }}>scrubbed via panel scrubber-proxy</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------- drag_to_rank renderer ----------
+function DragRank({
+  items, order, setOrder, disabled, onSubmit,
+}: {
+  items: { label: string; text: string }[];
+  order: string[];
+  setOrder: (o: string[]) => void;
+  disabled: boolean;
+  onSubmit: () => void;
+}) {
+  const byLabel = useMemo(() => Object.fromEntries(items.map(i => [i.label, i.text])), [items]);
+  const move = (idx: number, dir: -1 | 1) => {
+    const j = idx + dir;
+    if (j < 0 || j >= order.length) return;
+    const next = order.slice();
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setOrder(next);
+  };
+  // HTML5 drag-and-drop
+  const dragIdxRef = useRef<number | null>(null);
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div className="faint" style={{ fontSize: 10, marginBottom: 6 }}>drag to reorder · top = best</div>
+      <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {order.map((label, idx) => (
+          <li
+            key={label}
+            draggable={!disabled}
+            onDragStart={() => { dragIdxRef.current = idx; }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = dragIdxRef.current;
+              dragIdxRef.current = null;
+              if (from == null || from === idx) return;
+              const next = order.slice();
+              const [moved] = next.splice(from, 1);
+              next.splice(idx, 0, moved);
+              setOrder(next);
+            }}
+            className="choice"
+            style={{ cursor: disabled ? 'not-allowed' : 'grab', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span className="faint" style={{ fontSize: 10, minWidth: 18 }}>#{idx + 1}</span>
+            <span className="choice-label">{label}</span>
+            <span style={{ flex: 1 }}>{byLabel[label]}</span>
+            <span style={{ display: 'flex', gap: 2 }}>
+              <button className="btn btn-ghost" disabled={disabled || idx === 0} onClick={() => move(idx, -1)}>↑</button>
+              <button className="btn btn-ghost" disabled={disabled || idx === order.length - 1} onClick={() => move(idx, 1)}>↓</button>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <button className="choice" disabled={disabled} onClick={onSubmit} style={{ marginTop: 8 }}>
+        <span className="choice-label" style={{ color: 'var(--ok)' }}>↵</span> submit ranking: {order.join(' › ')}
+      </button>
+    </div>
+  );
+}
+
+// ---------- span_highlight renderer ----------
+function SpanHighlight({
+  passage, selection, setSelection, disabled, onSubmit,
+}: {
+  passage: string;
+  selection: { start: number; end: number } | null;
+  setSelection: (s: { start: number; end: number } | null) => void;
+  disabled: boolean;
+  onSubmit: (s: { start: number; end: number }) => void;
+}) {
+  // tokenize on whitespace, preserving offsets
+  const tokens = useMemo(() => {
+    const out: { text: string; start: number; end: number; isWord: boolean }[] = [];
+    const re = /\S+|\s+/g;
+    let m;
+    while ((m = re.exec(passage)) !== null) {
+      out.push({ text: m[0], start: m.index, end: m.index + m[0].length, isWord: /\S/.test(m[0]) });
+    }
+    return out;
+  }, [passage]);
+
+  const anchorRef = useRef<number | null>(null);
+  const onClick = (start: number, end: number) => {
+    if (disabled) return;
+    if (anchorRef.current == null) {
+      anchorRef.current = start;
+      setSelection({ start, end });
+    } else {
+      const a = anchorRef.current;
+      const lo = Math.min(a, start);
+      const hi = Math.max(a, end);
+      setSelection({ start: lo, end: hi });
+      anchorRef.current = null;
+    }
+  };
+  const reset = () => { anchorRef.current = null; setSelection(null); };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div className="faint" style={{ fontSize: 10, marginBottom: 6 }}>
+        click first word, then last word of your span. click again to reset.
+      </div>
+      <div style={{ padding: 8, border: '1px solid var(--border)', borderRadius: 4, lineHeight: 1.6 }}>
+        {tokens.map((t, i) => {
+          const inSel = selection != null && t.start >= selection.start && t.end <= selection.end;
+          if (!t.isWord) return <span key={i}>{t.text}</span>;
+          return (
+            <span
+              key={i}
+              onClick={() => onClick(t.start, t.end)}
+              style={{
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                background: inSel ? 'var(--accent, #ff0)' : 'transparent',
+                color: inSel ? '#000' : undefined,
+                padding: '0 1px',
+                borderRadius: 2,
+              }}
+            >{t.text}</span>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button className="choice" disabled={disabled || !selection} onClick={() => selection && onSubmit(selection)}>
+          <span className="choice-label" style={{ color: 'var(--ok)' }}>↵</span> submit highlight {selection ? `(${selection.start}–${selection.end})` : ''}
+        </button>
+        <button className="btn btn-ghost" disabled={disabled || !selection} onClick={reset}>clear</button>
       </div>
     </div>
   );
