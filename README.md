@@ -1,5 +1,8 @@
 # panel
 
+[![ci](https://github.com/UltraInstinct0x/panel/actions/workflows/ci.yml/badge.svg)](https://github.com/UltraInstinct0x/panel/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 a captcha you don't hate. visitors prove they're human by judging one piece of agent output. the judgment becomes preference data the operator keeps.
 
 recaptcha trains google's self-driving cars on your visitors. panel trains your own systems.
@@ -86,4 +89,10 @@ not for: ticketmaster, salesforce commerce, hospital systems, dev tools, AI star
 
 ## license
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+## security
+
+found a bug? see [SECURITY.md](SECURITY.md). short version: email security@goku.codes, don't open a public issue.
+
+operator runbook: [docs/ops.md](docs/ops.md).

@@ -1,0 +1,55 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PANEL_SIGNING_SECRET: ci-test-secret
+      PANEL_SITE_KEYS: pk_demo_a,pk_demo_b
+      PANEL_DB_PATH: ${{ github.workspace }}/data/panel-ci.db
+      PANEL_BASE: http://127.0.0.1:3015
+      PANEL_KEY: pk_demo_a
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: install
+        run: pnpm install --frozen-lockfile=false
+
+      - name: typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: build
+        run: pnpm build
+
+      - name: start (background)
+        run: |
+          mkdir -p data
+          nohup pnpm start > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3015/api/health >/dev/null 2>&1; then
+              echo "panel up"; break
+            fi
+            sleep 1
+          done
+
+      - name: smoke
+        run: bash scripts/smoke.sh
+
+      - name: server log on failure
+        if: failure()
+        run: tail -200 server.log || true
