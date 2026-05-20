@@ -266,17 +266,17 @@
         fingerprint_id: getFpId(),
         session_age_ms: Date.now() - collector.snapshot(0).dwell_ms ? 1 : 0,
       }, extraBody || {});
-      return fetch(ORIGIN + '/api/challenge/init', {
+      return fetch(ORIGIN + '/api/challenge/init?site_key=' + encodeURIComponent(siteKey), {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-panel-site-key': siteKey },
         body: JSON.stringify(body),
       }).then(function (r) { return r.json(); });
     }
 
     function postResolveC0() {
-      return fetch(ORIGIN + '/api/challenge/resolve', {
+      return fetch(ORIGIN + '/api/challenge/resolve?site_key=' + encodeURIComponent(siteKey), {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-panel-site-key': siteKey },
         body: JSON.stringify({
           challenge_token: challengeToken,
           fingerprint: collector.snapshot(),
