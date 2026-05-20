@@ -186,6 +186,7 @@ export default function DemoAgent() {
             <ul style={{ font: '14px/1.7 "Inter",sans-serif', color: '#a1a1aa', paddingLeft: 18 }}>
               <li><a style={sx.link} href="/demo/c0-c3">tier ladder (c0→c3) demo</a></li>
               <li><a style={sx.link} href="/demo/gate">full signup-gate demo</a></li>
+              <li><a style={sx.link} href="/review/u_skill_001">live skill-review verdict (rater-as-reviewer)</a></li>
               <li><a style={sx.link} href="/how-it-works">how it works</a> · <a style={sx.link} href="/docs">docs</a></li>
               <li><a style={sx.link} href="/privacy">privacy</a> · <a style={sx.link} href="/legal/terms">terms</a> · <a style={sx.link} href="/legal/dpa">DPA</a></li>
             </ul>

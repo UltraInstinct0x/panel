@@ -1,0 +1,97 @@
+# Drop-in GitHub Action: gate PR merge on panel skill-review consensus.
+#
+# Setup:
+#   1. Mint a panel site key + ingest secret (admin /admin/onboard).
+#   2. Add repo secrets:
+#        PANEL_SITE_KEY      pk_live_...
+#        PANEL_INGEST_SECRET is_... (raw, not hashed)
+#   3. Commit this file as .github/workflows/panel-review.yml in your repo.
+#
+# Flow:
+#   - On PR open / sync: extract changed skill diffs, POST each to /api/v1/skill-review.
+#   - Comment review_url on the PR (raters vote here).
+#   - Poll verdict; pass/fail the check based on rater consensus.
+name: panel-review
+
+on:
+  pull_request:
+    paths:
+      - '**/SKILL.md'
+      - 'skills/**'
+      - '.hermes/skills/**'
+
+jobs:
+  rater-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: extract changed skill diffs
+        id: diffs
+        run: |
+          set -euo pipefail
+          mkdir -p .panel
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          git diff "$base" "$head" -- '**/SKILL.md' 'skills/**' '.hermes/skills/**' > .panel/full.diff || true
+          if [ ! -s .panel/full.diff ]; then
+            echo "no skill diffs" >> $GITHUB_STEP_SUMMARY
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: submit to panel
+        id: submit
+        if: steps.diffs.outputs.skip != 'true'
+        env:
+          PANEL_URL: ${{ vars.PANEL_URL || 'https://panel.goku.codes' }}
+          SITE_KEY: ${{ secrets.PANEL_SITE_KEY }}
+          INGEST_SECRET: ${{ secrets.PANEL_INGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          DIFF="$(cat .panel/full.diff)"
+          REF="pr-${{ github.event.pull_request.number }}-sha-${{ github.event.pull_request.head.sha }}"
+          BODY="$(jq -n --arg d "$DIFF" --arg r "$REF" --arg a "${{ github.repository }}" --arg c "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
+            '{external_ref:$r, diff:$d, source_agent:$a, context:$c}')"
+          SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$INGEST_SECRET" -hex | awk '{print $NF}')"
+          RESP="$(curl -fsS -X POST "$PANEL_URL/api/v1/skill-review" \
+            -H 'content-type: application/json' \
+            -H "x-panel-site-key: $SITE_KEY" \
+            -H "x-panel-ingest-sig: $SIG" \
+            --data-raw "$BODY")"
+          echo "$RESP"
+          UNIT_ID="$(echo "$RESP" | jq -r '.unit_id')"
+          REVIEW_URL="$(echo "$RESP" | jq -r '.review_url')"
+          echo "unit_id=$UNIT_ID" >> $GITHUB_OUTPUT
+          echo "review_url=$REVIEW_URL" >> $GITHUB_OUTPUT
+
+      - name: comment on PR
+        if: steps.diffs.outputs.skip != 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: panel-review
+          message: |
+            🧑‍⚖️ **panel rater review**
+            cast a vote: ${{ steps.submit.outputs.review_url }}
+
+            this PR is gated on consensus from human raters (≥3 votes, ≥66% agreement).
+
+      - name: wait for verdict
+        if: steps.diffs.outputs.skip != 'true'
+        env:
+          PANEL_URL: ${{ vars.PANEL_URL || 'https://panel.goku.codes' }}
+          UNIT_ID: ${{ steps.submit.outputs.unit_id }}
+          TIMEOUT: '1800'  # 30 minutes
+          INTERVAL: '60'
+        run: |
+          curl -fsSL "${PANEL_URL}/scripts/panel-review-check.sh" -o /tmp/check.sh || \
+            curl -fsSL https://raw.githubusercontent.com/UltraInstinct0x/panel/main/scripts/panel-review-check.sh -o /tmp/check.sh
+          chmod +x /tmp/check.sh
+          /tmp/check.sh
