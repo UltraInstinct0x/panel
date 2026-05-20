@@ -184,12 +184,13 @@
     var siteKey = opts.site_key || opts.siteKey || el.getAttribute('data-panel-sitekey') || 'pk_demo_a';
     var mode = opts.mode || el.getAttribute('data-panel-mode') || 'pill';
     var forceTier = opts.force_tier || el.getAttribute('data-panel-force-tier') || null;
+    var bootDelayMs = Number(opts.boot_delay_ms || el.getAttribute('data-panel-boot-delay-ms') || 2500);
 
     el.innerHTML = '';
     el.style.position = el.style.position || 'relative';
 
     if (mode === 'inline') return renderInline(el, { siteKey: siteKey, pool: pool, opts: opts });
-    return renderPill(el, { siteKey: siteKey, pool: pool, opts: opts, forceTier: forceTier });
+    return renderPill(el, { siteKey: siteKey, pool: pool, opts: opts, forceTier: forceTier, bootDelayMs: bootDelayMs });
   }
 
   // SVG diamond glyph — the C0 resolve mark. 12px, cyan stroke, no fill.
@@ -203,7 +204,7 @@
     + '</svg>';
 
   function renderPill(el, ctx) {
-    var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts, forceTier = ctx.forceTier;
+    var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts, forceTier = ctx.forceTier, bootDelayMs = Number(ctx.bootDelayMs || 2500);
     var pill = document.createElement('button');
     pill.type = 'button';
     pill.className = 'pnl-pill';
@@ -233,6 +234,7 @@
     var challengeToken = null;
     var raterId = null;
     var currentTier = null;
+    var lastInitResp = null;
 
     function fireSolved(token, trust, tier_used) {
       widget.token = token;
@@ -343,6 +345,7 @@
         challengeToken = resp.challenge_token;
         raterId = resp.rater_id;
         currentTier = forceTier || resp.tier;
+        lastInitResp = resp;
 
         if (currentTier === 'C0') {
           // animate + auto-resolve
@@ -378,6 +381,7 @@
       postInit({ _debug_force_tier: tier }).then(function (resp) {
         challengeToken = resp.challenge_token;
         currentTier = resp.tier;
+        lastInitResp = resp;
         openPopoverWith(resp);
       });
     }
@@ -389,7 +393,7 @@
       if (bootstrapped) return; bootstrapped = true;
       bootstrap();
     }
-    setTimeout(maybeBootstrap, 2500);
+    setTimeout(maybeBootstrap, Math.max(0, bootDelayMs));
     pill.addEventListener('mouseenter', maybeBootstrap, { once: true });
     pill.addEventListener('focus', maybeBootstrap, { once: true });
 
@@ -398,6 +402,8 @@
       if (widget.token) return;
       maybeBootstrap();
       if (pop) return;
+      // reopen existing C1/C2/C3 challenge if user closed the popover manually.
+      if (lastInitResp && currentTier && currentTier !== 'C0') openPopoverWith(lastInitResp);
     });
 
     // iframe message handler — for C1/C2/C3 popover resolutions

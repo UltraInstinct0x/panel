@@ -16,10 +16,10 @@ export default function DemoC0C3() {
   }, []);
 
   const tiers = [
-    { tier: 'C0', label: 'c0 — invisible auto-check', desc: 'passive fingerprint → scanline + diamond glyph, no popover. ~1200ms total.' },
-    { tier: 'C1', label: 'c1 — single judgment', desc: 'one unit, popover anchored to pill. ≤10s budget.' },
-    { tier: 'C2', label: 'c2 — public mix', desc: '2 units across types. retry counter visible.' },
-    { tier: 'C3', label: 'c3 — multi-turn expert', desc: '3+ harder units. fail-any → retry SAME set.' },
+    { tier: 'C0', label: 'c0 — invisible auto-check', desc: 'passive fingerprint → scanline + diamond glyph, no popover. ~1200ms total.', delay: 400 },
+    { tier: 'C1', label: 'c1 — single judgment', desc: 'one unit, popover anchored to pill. ≤10s budget.', delay: 1200 },
+    { tier: 'C2', label: 'c2 — public mix', desc: '2 units across types. retry counter visible.', delay: 2000 },
+    { tier: 'C3', label: 'c3 — multi-turn expert', desc: '3+ harder units. fail-any → retry SAME set.', delay: 2800 },
   ];
 
   return (
@@ -51,7 +51,7 @@ export default function DemoC0C3() {
                 {t.desc}
               </div>
             </div>
-            <div data-panel-sitekey="pk_demo_a" data-panel-force-tier={t.tier} />
+            <div data-panel-sitekey="pk_demo_a" data-panel-force-tier={t.tier} data-panel-boot-delay-ms={t.delay} />
           </div>
         ))}
 
