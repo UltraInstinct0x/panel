@@ -1159,3 +1159,29 @@ nav.topbar .brand {
   font-size: 12px; line-height: 1.5; color: var(--text, #e5e7eb);
   white-space: pre-wrap; word-break: break-word;
 }
+
+/* WS-V4 — media units (image + video, quality + origin) */
+.u-mq, .u-mo { display: flex; flex-direction: column; gap: 14px; }
+.u-mq-frame, .u-mo-frame {
+  width: 100%;
+  background: #0a0a0a;
+  border: 1px solid var(--border, #222);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 220px;
+  max-height: 440px;
+}
+.u-mq-media, .u-mo-media {
+  display: block;
+  max-width: 100%;
+  max-height: 440px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.u-mq-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.u-mo-pills { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.u-mq-err, .u-mo-err { color: var(--bad, #f87171); font-family: var(--font-mono, monospace); font-size: 13px; padding: 18px; text-align: center; }
+.u-pill--ai { color: #c084fc; }
+.u-pill--real { color: var(--ok, #67e8f9); }

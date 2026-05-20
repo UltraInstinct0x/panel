@@ -9,6 +9,8 @@ import SpanHighlight from './units/SpanHighlight';
 import ImageRating from './units/ImageRating';
 import PromptRewritePair from './units/PromptRewritePair';
 import ProcessOutputRating from './units/ProcessOutputRating';
+import MediaQuality from './units/MediaQuality';
+import MediaOrigin from './units/MediaOrigin';
 import Default from './units/Default';
 import type { RendererUnit } from './units/types';
 
@@ -355,6 +357,12 @@ export default function Widget({ onSolved, siteKey = 'pk_demo_a', pool = 'public
     case 'skill_diff_review':
       // diff + binary/choices → Default already does this well
       renderer = <Default unit={unit} onAnswer={submit} disabled={tooFast} />;
+      break;
+    case 'media_quality':
+      renderer = <MediaQuality unit={unit as any} onAnswer={submit} disabled={tooFast} />;
+      break;
+    case 'media_origin':
+      renderer = <MediaOrigin unit={unit as any} onAnswer={submit} disabled={tooFast} />;
       break;
     default:
       renderer = <Default unit={unit} onAnswer={submit} disabled={tooFast} />;

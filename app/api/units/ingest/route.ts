@@ -19,6 +19,8 @@ function defaultQuestionFor(type: string): string {
     case 'process_output_rating': return 'rate this agent output';
     case 'skill_diff_review': return 'should this skill update ship?';
     case 'prompt_rewrite_pair': return 'which phrasing is better?';
+    case 'media_quality': return 'rate this generated media';
+    case 'media_origin': return 'is this AI-generated or real?';
     default: return 'rate this';
   }
 }
@@ -116,6 +118,8 @@ export async function POST(req: NextRequest) {
     'skill_diff_review',
     'process_output_rating',
     'prompt_rewrite_pair',
+    'media_quality',
+    'media_origin',
   ]);
 
   // accept whitelisted unit types from operators (locked-down schema).
@@ -149,6 +153,9 @@ export async function POST(req: NextRequest) {
       let diff: string | undefined;
       let binary: { yes: string; no: string } | undefined;
       let choices: { label: string; text: string }[] | undefined;
+      let media_url: string | undefined;
+      let media_type: 'image' | 'video' | undefined;
+      let poster_url: string | undefined;
       let seedExtra = '';
 
       if (type === 'ai_output_rating') {
@@ -188,6 +195,21 @@ export async function POST(req: NextRequest) {
           continue;
         }
         seedExtra = `${choices![0].text}|${choices![1].text}`.slice(0, 200);
+      } else if (type === 'media_quality' || type === 'media_origin') {
+        media_url = String(raw?.media_url || raw?.url || '');
+        if (!/^https?:\/\//.test(media_url)) {
+          rejected.push({ ref: ext || undefined, error: 'media_url must be http(s)' });
+          continue;
+        }
+        const mt = String(raw?.media_type || 'image').toLowerCase();
+        if (mt !== 'image' && mt !== 'video') {
+          rejected.push({ ref: ext || undefined, error: 'media_type must be image|video' });
+          continue;
+        }
+        media_type = mt as 'image' | 'video';
+        const p = String(raw?.poster_url || '');
+        if (p && /^https?:\/\//.test(p)) poster_url = p;
+        seedExtra = `${media_type}|${media_url}`.slice(0, 200);
       }
 
       // deterministic id: prefix + sha1(site_key|ext|type|seedExtra) — idempotent re-ingest.
@@ -203,13 +225,16 @@ export async function POST(req: NextRequest) {
         prompt_context,
         question,
         is_honeypot: false,
-        est_seconds: type === 'skill_diff_review' ? 8 : type === 'process_output_rating' ? 6 : 4,
+        est_seconds: type === 'skill_diff_review' ? 8 : type === 'process_output_rating' ? 6 : type === 'media_quality' ? 5 : type === 'media_origin' ? 4 : 4,
       };
       if (image_url) unit.image_url = image_url;
       if (passage) unit.passage = passage;
       if (diff) unit.diff = diff;
       if (binary) unit.binary = binary;
       if (choices) unit.choices = choices;
+      if (media_url) unit.media_url = media_url;
+      if (media_type) unit.media_type = media_type;
+      if (poster_url) unit.poster_url = poster_url;
 
       insert.run(id, JSON.stringify(unit), 'public', 0, now);
       if (ext) linkInsert.run(id, siteKey, ext, now);

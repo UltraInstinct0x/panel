@@ -30,7 +30,10 @@ export type UnitType =
   // WS-V: agent-feedback-loop unit types
   | 'skill_diff_review'
   | 'process_output_rating'
-  | 'prompt_rewrite_pair';
+  | 'prompt_rewrite_pair'
+  // WS-V4: AI-gen media types (image + video, quality + origin)
+  | 'media_quality'
+  | 'media_origin';
 
 export type UnitPool = 'public' | 'technical';
 
