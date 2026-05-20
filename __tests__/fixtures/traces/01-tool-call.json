@@ -1,0 +1,16 @@
+{
+  "source_agent": "hermes",
+  "blob": {
+    "messages": [
+      { "role": "user", "content": "list files in /tmp" },
+      {
+        "role": "assistant",
+        "content": "running ls",
+        "tool_calls": [
+          { "name": "shell", "arguments": { "cmd": "ls /tmp" }, "result": "a.txt\nb.txt" }
+        ]
+      }
+    ]
+  },
+  "_expected": { "min_units": 1, "types_include": ["step_validity"] }
+}

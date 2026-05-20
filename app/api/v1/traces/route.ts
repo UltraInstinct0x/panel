@@ -1,0 +1,182 @@
+// WS-N: POST /v1/traces — ingest a trace, run splitter, spawn units.
+// auth: site-key + HMAC (X-Panel-Ingest-Sig) + WS-M scrubber JWT (when required).
+// body: { trace_id?, source_agent, blob }
+// async: blob > 100KB → 202 + GET /v1/traces/[id]
+import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { db, scrubberRequiredFor } from '@/lib/db';
+import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
+import { logAccess } from '@/lib/logger';
+import { audit } from '@/lib/audit';
+import { verifyAttestation, sha256Hex } from '@/lib/scrubber-attestation';
+import { splitStructural, reMerge, Candidate } from '@/lib/splitter/structural';
+import { llmSplitProseCandidates } from '@/lib/splitter/llm';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+const ASYNC_THRESHOLD = 100 * 1024; // 100KB
+
+function ingestSecretFor(siteKey: string): string | null {
+  const envKey = `PANEL_INGEST_SECRET_${siteKey.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+  return process.env[envKey] || process.env.PANEL_INGEST_SECRET || null;
+}
+function timingEqual(a: string, b: string): boolean {
+  const A = Buffer.from(a, 'hex'); const B = Buffer.from(b, 'hex');
+  if (A.length === 0 || A.length !== B.length) return false;
+  return crypto.timingSafeEqual(A, B);
+}
+
+interface SplitOutcome {
+  unit_ids: string[];
+  structural_count: number;
+  llm_count: number;
+  skipped_count: number;
+}
+
+async function runSplitterAndPersist(traceId: string, body: any): Promise<SplitOutcome> {
+  const blob = body?.blob ?? body;
+  const sourceAgent = String(body?.source_agent ?? 'unknown').slice(0, 80);
+  const structural = reMerge(splitStructural(blob));
+
+  const proseHandoffs = structural.candidates.filter(c => c.type === 'prose_handoff');
+  const structuralEmit = structural.candidates.filter(c => c.type !== 'prose_handoff');
+
+  let llmEmit: Candidate[] = [];
+  let llm_count = 0, skipped_count = 0;
+  if (proseHandoffs.length > 0) {
+    const r = await llmSplitProseCandidates(proseHandoffs);
+    llmEmit = r.emitted;
+    llm_count = r.llm_count;
+    skipped_count = r.skipped_count;
+  }
+
+  const all = [...structuralEmit, ...llmEmit];
+  const ins = db.prepare(
+    'INSERT OR REPLACE INTO units (id, json, pool, is_honeypot, created_at, trace_id, parent_span_path) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  );
+  const now = Date.now();
+  const unit_ids: string[] = [];
+  const tx = db.transaction(() => {
+    all.forEach((c, i) => {
+      // emit only types accepted by ingest pipeline (downstream may downgrade)
+      const allowedTypes = new Set([
+        'step_validity','skill_diff','hallucination_flag','pairwise_trace',
+      ]);
+      if (!allowedTypes.has(c.type as string)) return;
+      const id = `u_tr_${traceId.slice(0, 8)}_${i}_${crypto.randomBytes(3).toString('hex')}`;
+      const unit = {
+        id,
+        type: c.type,
+        pool: 'public',
+        source_agent: sourceAgent,
+        prompt_context: '',
+        question: c.payload?.question ?? '',
+        ...c.payload,
+        est_seconds: 10,
+        trace_id: traceId,
+        parent_span_path: c.parent_span_path,
+        source_token_range: c.source_token_range,
+      };
+      ins.run(id, JSON.stringify(unit), 'public', 0, now, traceId, c.parent_span_path);
+      unit_ids.push(id);
+    });
+  });
+  tx();
+
+  return { unit_ids, structural_count: structuralEmit.length, llm_count, skipped_count };
+}
+
+export async function POST(req: NextRequest) {
+  const started = Date.now();
+  const ip = clientIp(req);
+  const siteKey = req.headers.get('x-panel-site-key') || '';
+  const sig = req.headers.get('x-panel-ingest-sig') || '';
+  const raw = await req.text();
+
+  const rl = checkBoth(ip, siteKey);
+  if (!rl.ok) {
+    const res = NextResponse.json({ error: 'rate_limited', scope: rl.scope, retry_after_s: rl.retry_after_s }, { status: 429 });
+    for (const [k, v] of Object.entries(rateLimitHeaders(rl))) res.headers.set(k, v);
+    logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 429, ms: Date.now() - started, site_key: siteKey, ip, rl });
+    return res;
+  }
+
+  if (!siteKey || !sig) {
+    return NextResponse.json({ error: 'missing_auth' }, { status: 401 });
+  }
+  const secret = ingestSecretFor(siteKey);
+  if (!secret) return NextResponse.json({ error: 'ingest_not_configured', site_key: siteKey }, { status: 401 });
+  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');
+  if (!timingEqual(expected, sig)) {
+    audit('operator', siteKey, 'traces.bad_sig', 'traces', '', null);
+    return NextResponse.json({ error: 'bad_signature' }, { status: 401 });
+  }
+
+  let body: any;
+  try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
+
+  // WS-M scrubber JWT gate
+  let attJti: string | null = null;
+  const scrubberRequired = scrubberRequiredFor(siteKey);
+  if (scrubberRequired) {
+    const attHeader = req.headers.get('x-scrubber-attestation');
+    if (!attHeader) {
+      audit('operator', siteKey, 'traces.scrubber_attestation_missing', 'traces', '', null);
+      return NextResponse.json({ error: 'scrubber_attestation_required' }, { status: 422 });
+    }
+    const v = verifyAttestation(attHeader, { expectedOutputHash: sha256Hex(raw) });
+    if (!v.ok) {
+      const code = `scrubber_attestation_${v.error}`;
+      audit('operator', siteKey, `traces.${code}`, 'traces', '', { reason: v.error });
+      return NextResponse.json({ error: code }, { status: 422 });
+    }
+    attJti = v.payload.jti;
+  } else {
+    audit('operator', siteKey, 'traces.scrubber_bypassed', 'traces', '', { bytes: raw.length });
+  }
+
+  const trace_id = String(body?.trace_id || `tr_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`);
+  const blobJson = JSON.stringify(body?.blob ?? body);
+  const blobHash = sha256Hex(blobJson);
+
+  // upsert trace row
+  db.prepare(
+    `INSERT OR REPLACE INTO traces (trace_id, operator_id, source_agent, raw_blob_hash, sanitized_at, ingested_at, scrubber_attestation_jti, blob_size, status, blob_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    trace_id, siteKey, String(body?.source_agent ?? 'unknown'),
+    blobHash, Date.now(), Date.now(), attJti, blobJson.length,
+    blobJson.length > ASYNC_THRESHOLD ? 'pending' : 'done', blobJson,
+  );
+
+  // async path: large blob → 202, run splitter in background.
+  if (blobJson.length > ASYNC_THRESHOLD) {
+    audit('operator', siteKey, 'traces.accepted_async', 'traces', trace_id, { bytes: blobJson.length });
+    // fire and forget
+    (async () => {
+      try {
+        const out = await runSplitterAndPersist(trace_id, body);
+        db.prepare(`UPDATE traces SET status='done', result_json=? WHERE trace_id=?`)
+          .run(JSON.stringify(out), trace_id);
+      } catch (err: any) {
+        db.prepare(`UPDATE traces SET status='error', result_json=? WHERE trace_id=?`)
+          .run(JSON.stringify({ error: String(err?.message || err) }), trace_id);
+      }
+    })();
+    const res = NextResponse.json({ trace_id, status: 'pending', poll: `/v1/traces/${trace_id}` }, { status: 202 });
+    for (const [k, v] of Object.entries(rateLimitHeaders(rl))) res.headers.set(k, v);
+    return res;
+  }
+
+  // sync path
+  const out = await runSplitterAndPersist(trace_id, body);
+  db.prepare(`UPDATE traces SET status='done', result_json=? WHERE trace_id=?`)
+    .run(JSON.stringify(out), trace_id);
+  audit('operator', siteKey, 'traces.ok', 'traces', trace_id, { units: out.unit_ids.length, structural: out.structural_count, llm: out.llm_count });
+
+  const res = NextResponse.json({ trace_id, ...out });
+  for (const [k, v] of Object.entries(rateLimitHeaders(rl))) res.headers.set(k, v);
+  logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 200, ms: Date.now() - started, site_key: siteKey, ip, rl });
+  return res;
+}

@@ -80,7 +80,29 @@ function openDb(): Database.Database {
       label TEXT,
       created_at INTEGER NOT NULL
     );
+
+    -- WS-N: traces table. raw_blob_hash references the SCRUBBED blob hash;
+    -- splitter never reads raw input — only the sanitized payload that came
+    -- through the scrubber JWT gate.
+    CREATE TABLE IF NOT EXISTS traces (
+      trace_id TEXT PRIMARY KEY,
+      operator_id TEXT,
+      source_agent TEXT,
+      raw_blob_hash TEXT,
+      sanitized_at INTEGER,
+      ingested_at INTEGER NOT NULL,
+      scrubber_attestation_jti TEXT,
+      blob_size INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'done',  -- 'pending' | 'done' | 'error'
+      result_json TEXT,
+      blob_json TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_traces_agent ON traces(source_agent);
   `);
+  // WS-N: additive column migrations on units.
+  try { d.exec(`ALTER TABLE units ADD COLUMN trace_id TEXT`); } catch {}
+  try { d.exec(`ALTER TABLE units ADD COLUMN parent_span_path TEXT`); } catch {}
+  try { d.exec(`CREATE INDEX IF NOT EXISTS idx_units_trace ON units(trace_id)`); } catch {}
   return d;
 }
 

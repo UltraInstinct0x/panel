@@ -1,0 +1,10 @@
+{
+  "source_agent": "hermes",
+  "blob": {
+    "messages": [
+      { "role": "user", "content": "who founded openai?" },
+      { "role": "assistant", "content": "OpenAI was founded in December 2015 by Sam Altman, Elon Musk and others [source: https://en.wikipedia.org/wiki/OpenAI]. Its mission is broad AGI safety [1]." }
+    ]
+  },
+  "_expected": { "min_units": 1, "types_include": ["hallucination_flag"] }
+}

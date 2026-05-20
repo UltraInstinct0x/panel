@@ -1,0 +1,10 @@
+{
+  "source_agent": "hermes",
+  "blob": {
+    "messages": [
+      { "role": "user", "content": "explain how http/2 multiplexing works at the byte level" },
+      { "role": "assistant", "content": "http/2 multiplexes streams over a single tcp connection by chopping requests and responses into frames. each frame carries a stream id, a type, flags, and a length prefix. the binary framing layer sits between the application and tcp, replacing http/1.1's newline-delimited textual format. unlike http/1.1 which forced head-of-line blocking at the connection level, http/2 allows multiple concurrent streams to interleave their frames freely. each stream has a state machine: idle, open, half-closed, closed. flow control is window-based per-stream and per-connection. header compression uses hpack, a stateful huffman scheme tuned for http headers. server push lets the origin proactively send resources the client will need. priority hints allow weighted scheduling but are largely ignored by clients in practice. the binary protocol also enables much more efficient parsing on the wire compared to ascii http/1.1." }
+    ]
+  },
+  "_expected": { "min_units": 0, "has_prose_handoff": true }
+}

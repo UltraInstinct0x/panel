@@ -1,0 +1,11 @@
+{
+  "source_agent": "kanban",
+  "blob": {
+    "messages": [
+      { "role": "assistant", "agent_id": "agent_a", "prompt_ref": "p1", "content": "write a haiku about rust" },
+      { "role": "assistant", "agent_id": "agent_a", "prompt_ref": "p1", "content": "borrow checker bites\nlifetimes whisper through the code\nzero-cost autumn" },
+      { "role": "assistant", "agent_id": "agent_b", "prompt_ref": "p1", "content": "memory safe spring\nownership graphs blossom wide\nrust never sleeps now" }
+    ]
+  },
+  "_expected": { "min_units": 1, "types_include": ["pairwise_trace"] }
+}

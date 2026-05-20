@@ -1,0 +1,20 @@
+{
+  "source_agent": "opencode",
+  "blob": {
+    "events": [
+      { "role": "user", "content": "rename foo to bar across project" },
+      {
+        "role": "assistant",
+        "content": "scanning files",
+        "tool_calls": [
+          { "name": "grep", "args": { "pattern": "foo" }, "result": "3 matches" }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "```diff\n--- a/a.js\n+++ b/a.js\n@@ -1 +1 @@\n-foo()\n+bar()\n```\n\n```diff\n--- a/b.js\n+++ b/b.js\n@@ -1 +1 @@\n-foo\n+bar\n```"
+      }
+    ]
+  },
+  "_expected": { "min_units": 2, "types_include": ["step_validity", "skill_diff"] }
+}

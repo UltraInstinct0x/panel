@@ -1,0 +1,10 @@
+{
+  "source_agent": "hermes",
+  "blob": {
+    "messages": [
+      { "role": "user", "content": "hi" },
+      { "role": "assistant", "content": "hey, what's up?" }
+    ]
+  },
+  "_expected": { "min_units": 0 }
+}

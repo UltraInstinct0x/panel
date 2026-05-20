@@ -1,0 +1,21 @@
+{
+  "source_agent": "hermes",
+  "blob": {
+    "messages": [
+      { "role": "user", "content": "build and test" },
+      {
+        "role": "assistant",
+        "content": "running build then test",
+        "tool_calls": [
+          { "name": "shell", "arguments": { "cmd": "pnpm build" }, "result": "ok" },
+          { "name": "shell", "arguments": { "cmd": "pnpm test" }, "result": "12 passed" }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": "applying fix:\n\n```diff\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-const x = 1\n+const x = 2\n```"
+      }
+    ]
+  },
+  "_expected": { "min_units": 2, "types_include": ["step_validity", "skill_diff"] }
+}
