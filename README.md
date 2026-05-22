@@ -59,7 +59,12 @@ the page embeds signals that humans ignore but agents can't resist processing:
 | any | any | no trap | fail | **none / blocked** | bot (LLM solver) — reject |
 | natural | clean | ambiguous | ambiguous | **low-trust** | uncertain — operator decides |
 
-the token is not unconditional — it carries the verdict and trust level. the operator decides their risk tolerance via `/api/verify`: accept only high-trust tokens, accept standard+, or accept all and handle risk downstream. most real humans get high-trust tokens instantly (layers 1-3 clean). bots get blocked or flagged tokens they can't use.
+**important edge cases:**
+- **VPN users** — IP reputation is NOT a primary signal. many legitimate users use VPNs. behavioral telemetry + environment traps are the primary signals. vpn usage alone should not downgrade trust.
+- **frequent captcha solvers** — some users naturally solve many captchas (developers, QA, privacy-conscious users). their timing patterns might look unusual. calibration threshold must not flag legitimate power users.
+- **tor users** — similar to vpn. behavioral signals matter more than network identity.
+
+the token carries the verdict and trust level. the operator decides their risk tolerance via `/api/verify`. most real humans get high-trust tokens instantly (layers 1-3 clean). bots get blocked or flagged tokens they can't use.
 
 ### escalation policy
 
@@ -129,6 +134,15 @@ renders as a ~240px-wide pill (`verify you're human`). click → modal overlay w
 modes:
 - `data-panel-mode="pill"` (default) — Cloudflare-Turnstile-shape compact widget
 - `data-panel-mode="inline"` — full inline iframe (legacy)
+
+### operator bot policy system (v2+)
+
+operators can assign, rotate, or revoke API keys for specific bots, pages, services, and endpoints. policies are scoped to specific entry points, allowing selective bot allowlisting and per-endpoint risk tolerance.
+
+- **per-path policies** — different risk tolerance on /login (strict) vs /about (permissive)
+- **bot registry** — register specific bots (googlebot, bingbot, monitoring bots) with verification methods
+- **key management** — rotate/revoke keys scoped to specific bots/pages/services
+- **panel-data controls** — enable/disable data collection per policy scope, tune retention, tag bot vs human data
 
 ### feed your outputs back into the queue (HMAC-signed)
 
