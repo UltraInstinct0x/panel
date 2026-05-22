@@ -17,44 +17,60 @@ so the unit pool is split by who-wins-the-race:
 
 | pool | unit shape | who wins | where it runs |
 |---|---|---|---|
-| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real, media quality, media origin, **human-hard challenges** (mental math, exact counting, string ops, sorting) | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
+| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real, media quality, media origin | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
 | paid rater | tool_call_validity, reasoning_trace_quality, code_diff_review, response_factuality, safety_alignment, skill_diff_review, step_validity, multi_turn_coherence, commit_description_quality, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
 
-**key rule: public pool units must be grandma-safe.** no code diffs, no tool calls, no reasoning traces. public pool tests only what AI struggles with (taste, nuance, perception) and what humans struggle with (rapid computation, exact counting). technical judgment units live exclusively in the paid rater pool.
+**key rule: public pool units must be grandma-safe.** no code diffs, no tool calls, no reasoning traces. technical judgment units live exclusively in the paid rater pool.
 
-## the 4-signal verification model
+## the verification model — the environment IS the captcha
 
-panel doesn't just throw a challenge at every visitor. passive signals run first, and a captcha challenge is only escalated when the passive layers are ambiguous. four signals feed a unified verdict:
+panel doesn't give visitors explicit "challenges" to solve. that's the wrong frame. you can't queue human-testing challenges alongside bot-testing challenges on the same person — a math test that's hard for humans would block real users, and flagship LLMs increasingly handle sarcasm and taste.
 
-| # | signal | mode | what it catches |
+instead: **the page environment itself is the test.** humans and agents experience the same page completely differently. the verification layer observes *how* the visitor interacts with the environment, not *what* they answer.
+
+### the four layers
+
+| # | layer | mode | what it detects |
 |---|---|---|---|
-| 1 | **behavioral telemetry** | passive, continuous | mouse entropy, scroll variance, focus events, dwell time, paste detection, timing distributions. bots have uniform timing; humans have variance. AI agents using browser automation leave detectable CDP artifacts. |
-| 2 | **environment fingerprint** | passive, one-shot | WebDriver flags, headless browser indicators, automation framework globals (Selenium, Puppeteer, Playwright), canvas/WebGL fingerprints. catches known bot infrastructure. |
-| 3 | **AI-hard challenge** | active, escalated | taste, sarcasm, cultural recency, perception, AI-vs-real, dub-sync naturalness. things current AI is bad at, humans are good at. only served when signals 1+2 are ambiguous. |
-| 4 | **human-hard challenge** | active, escalated | rapid mental math, exact character counting, string reversal, sorting, binary decoding. things humans are bad at, AI is trivial at. served alongside or after signal 3. |
+| 1 | **behavioral telemetry** | passive, continuous | mouse entropy, scroll variance, focus events, dwell time, paste detection, click precision, timing distributions. humans have natural variance and micro-tremor; bots and agents have uniform timing and linear trajectories. |
+| 2 | **environment fingerprint** | passive, one-shot | WebDriver flags, headless browser indicators, automation framework globals (Selenium, Puppeteer, Playwright, CDP artifacts), canvas/WebGL fingerprints. catches known bot infrastructure. |
+| 3 | **environment traps** | active, invisible | page contains things only agents would notice or interact with. see below. |
+| 4 | **public pool judgment** | active, escalated | taste, perception, AI-vs-real, media quality units — only served when layers 1-3 are ambiguous. grandma-safe: trivially easy for a human, subtly hard for current AI. |
 
-### cross-check logic
+### environment traps (layer 3)
 
-the verdict is a function of all four signals, not any single one:
+the page embeds signals that humans ignore but agents can't resist processing:
 
-| behavioral | environment | AI-hard | human-hard | verdict |
+- **metadata traps** — embed incorrect metadata in the DOM (wrong `data-*` attributes, fake structured data, misleading meta tags). agents that parse and act on it reveal themselves. humans never read metadata.
+- **hidden DOM elements** — elements visible to DOM parsers but not rendered (display:none, off-screen, zero-opacity). agents that "click" or reference them are flagged. humans can't interact with what they can't see.
+- **ambiguity resistance** — page presents something slightly odd or ambiguous. humans shrug and continue naturally. LLMs over-analyze, ask for clarification, or freeze. measure time-to-next-action after ambiguity.
+- **obviousness tests** — a button says "click here to verify." humans click it. an LLM might inspect it, read its attributes, or try to find a trick. measure the ratio of direct-action vs. inspection-action.
+- **interaction entropy** — humans have natural randomness (variable click positions, imperfect trajectories, hesitation). agents have patterns (precise coordinates, sequential steps, tool-call-shaped delays). measure entropy across the full interaction trace.
+- **delay signatures** — agents have characteristic timing: API call latency followed by sequential tool execution. humans have variable delays (reading, thinking, distraction, tab-switch). model the delay distribution.
+- **multi-turn pattern detection** — agents that interact across multiple pages/forms follow sequential tool-use patterns (fill field → submit → wait → fill next). humans have organic, non-linear navigation (back, skip, revisit).
+
+### verdict logic
+
+the verdict is a function of all four layers, not any single one:
+
+| behavioral | environment | traps | judgment | verdict |
 |---|---|---|---|---|
-| natural | clean | pass | fail | **human** (nails taste, can't do math fast) |
-| automated | dirty | fail | pass | **AI agent** (breezes math, fails nuance) |
-| natural | clean | pass | pass | **suspicious** (human savant or AI solving taste — escalate to honeypot) |
-| automated | clean | fail | fail | **bot** (script, no intelligence) |
-| any | any | — | — | **low confidence** → issue token but flag for async review (opaque scoring, D13.5) |
+| natural | clean | no trap triggered | n/a or pass | **human** |
+| automated | dirty | trap triggered | n/a | **bot** (dumb automation) |
+| natural | clean | trap triggered | pass | **AI agent** (sophisticated — looks human behaviorally but processes metadata/DOM like a machine) |
+| any | any | no trap | fail | **bot** (failed taste/perception, likely using LLM solver) |
+| natural | clean | ambiguous | ambiguous | **low confidence** → issue token, flag for async review |
 
-the token issues unconditionally (so the user isn't blocked). the verdict resolves asynchronously using the gold-agreement score hours later. bots can't tight-loop the verifier.
+token issues unconditionally (user isn't blocked). verdict resolves asynchronously via gold-agreement scoring hours later. bots can't tight-loop the verifier.
 
 ### escalation policy
 
-1. signals 1+2 run on every request — zero friction
-2. if both say "clean human" → issue T0 invisible token. no challenge shown.
-3. if either is ambiguous → escalate to signal 3 (AI-hard unit from public pool)
-4. if signal 3 result is ambiguous → escalate to signal 4 (human-hard challenge)
-5. final verdict = cross-check of all collected signals
-6. honeypot units (D13.4) are silently seeded across signals 3+4 — flunking = flagged
+1. layers 1+2 run on every request — zero friction
+2. layer 3 (traps) is always present in the page — invisible to humans, detectable to agents
+3. if layers 1-3 all say "clean human" → issue T0 invisible token. no challenge shown.
+4. if any layer is ambiguous → escalate to layer 4 (public pool judgment unit)
+5. final verdict = cross-check of all collected layers
+6. honeypot units (D13.4) are silently seeded in layer 4 — flunking = flagged
 
 ## the other defenses (D13)
 
