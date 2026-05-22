@@ -49,28 +49,27 @@ the page embeds signals that humans ignore but agents can't resist processing:
 - **delay signatures** — agents have characteristic timing: API call latency followed by sequential tool execution. humans have variable delays (reading, thinking, distraction, tab-switch). model the delay distribution.
 - **multi-turn pattern detection** — agents that interact across multiple pages/forms follow sequential tool-use patterns (fill field → submit → wait → fill next). humans have organic, non-linear navigation (back, skip, revisit).
 
-### verdict logic
+### verdict matrix
 
-the verdict is a function of all four layers, not any single one:
+| behavioral | environment | traps | judgment | token | verdict to operator |
+|---|---|---|---|---|---|
+| natural | clean | no trap triggered | n/a | **high-trust** | human — accept |
+| automated | dirty | trap triggered | n/a | **none / blocked** | bot — reject |
+| natural | clean | trap triggered | pass | **low-trust** | AI agent (sophisticated) — operator decides |
+| any | any | no trap | fail | **none / blocked** | bot (LLM solver) — reject |
+| natural | clean | ambiguous | ambiguous | **low-trust** | uncertain — operator decides |
 
-| behavioral | environment | traps | judgment | verdict |
-|---|---|---|---|---|
-| natural | clean | no trap triggered | n/a or pass | **human** |
-| automated | dirty | trap triggered | n/a | **bot** (dumb automation) |
-| natural | clean | trap triggered | pass | **AI agent** (sophisticated — looks human behaviorally but processes metadata/DOM like a machine) |
-| any | any | no trap | fail | **bot** (failed taste/perception, likely using LLM solver) |
-| natural | clean | ambiguous | ambiguous | **low confidence** → issue token, flag for async review |
-
-token issues unconditionally (user isn't blocked). verdict resolves asynchronously via gold-agreement scoring hours later. bots can't tight-loop the verifier.
+the token is not unconditional — it carries the verdict and trust level. the operator decides their risk tolerance via `/api/verify`: accept only high-trust tokens, accept standard+, or accept all and handle risk downstream. most real humans get high-trust tokens instantly (layers 1-3 clean). bots get blocked or flagged tokens they can't use.
 
 ### escalation policy
 
 1. layers 1+2 run on every request — zero friction
-2. layer 3 (traps) is always present in the page — invisible to humans, detectable to agents
-3. if layers 1-3 all say "clean human" → issue T0 invisible token. no challenge shown.
+2. layer 3 (traps) is always present in the page — invisible to humans
+3. if layers 1-3 all say "clean human" → issue **high-trust token** immediately. no challenge shown.
 4. if any layer is ambiguous → escalate to layer 4 (public pool judgment unit)
-5. final verdict = cross-check of all collected layers
-6. honeypot units (D13.4) are silently seeded in layer 4 — flunking = flagged
+5. if layer 4 passed → issue **standard-trust token**
+6. if layer 4 failed or layers 1-3 were flagged → issue **low-trust token** (or block, per operator config)
+7. honeypot units (D13.4) are silently seeded in layer 4 — flunking = low-trust or blocked
 
 ## the other defenses (D13)
 
@@ -80,7 +79,7 @@ even taste degrades if a bot brute-forces. layers:
 2. engagement window — 2.5–4s minimum, variance check.
 3. interaction-required hard tiers — drag-to-rank, highlight-the-span, drag-onto-moving-target.
 4. honeypot units — quietly seeded units where the obvious-LLM-answer is wrong by design. flunking = flagged.
-5. opaque scoring — token issues unconditionally, the gold-agreement score resolves hours later. bot can't tight-loop the verifier.
+5. opaque scoring — token carries a trust level; the gold-agreement score refines it hours later. operator can reject low-trust tokens immediately or accept and refine asynchronously.
 
 ## what's in this repo
 
