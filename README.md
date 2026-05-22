@@ -17,10 +17,64 @@ so the unit pool is split by who-wins-the-race:
 
 | pool | unit shape | who wins | where it runs |
 |---|---|---|---|
-| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real detection | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
-| paid rater | code skill_diff, step_validity, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
+| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real, media quality, media origin | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
+| paid rater | tool_call_validity, reasoning_trace_quality, code_diff_review, response_factuality, safety_alignment, skill_diff_review, step_validity, multi_turn_coherence, commit_description_quality, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
 
-technical units never touch anonymous raters. that's the whole wedge. hCaptcha can't pivot to taste-units without rebuilding their gold-seed quality model from scratch.
+**key rule: public pool units must be grandma-safe.** no code diffs, no tool calls, no reasoning traces. technical judgment units live exclusively in the paid rater pool.
+
+## the verification model — the environment IS the captcha
+
+panel doesn't give visitors explicit "challenges" to solve. that's the wrong frame. you can't queue human-testing challenges alongside bot-testing challenges on the same person — a math test that's hard for humans would block real users, and flagship LLMs increasingly handle sarcasm and taste.
+
+instead: **the page environment itself is the test.** humans and agents experience the same page completely differently. the verification layer observes *how* the visitor interacts with the environment, not *what* they answer.
+
+### the four layers
+
+| # | layer | mode | what it detects |
+|---|---|---|---|
+| 1 | **behavioral telemetry** | passive, continuous | mouse entropy, scroll variance, focus events, dwell time, paste detection, click precision, timing distributions. humans have natural variance and micro-tremor; bots and agents have uniform timing and linear trajectories. |
+| 2 | **environment fingerprint** | passive, one-shot | WebDriver flags, headless browser indicators, automation framework globals (Selenium, Puppeteer, Playwright, CDP artifacts), canvas/WebGL fingerprints. catches known bot infrastructure. |
+| 3 | **environment traps** | active, invisible | page contains things only agents would notice or interact with. see below. |
+| 4 | **public pool judgment** | active, escalated | taste, perception, AI-vs-real, media quality units — only served when layers 1-3 are ambiguous. grandma-safe: trivially easy for a human, subtly hard for current AI. |
+
+### environment traps (layer 3)
+
+the page embeds signals that humans ignore but agents can't resist processing:
+
+- **metadata traps** — embed incorrect metadata in the DOM (wrong `data-*` attributes, fake structured data, misleading meta tags). agents that parse and act on it reveal themselves. humans never read metadata.
+- **hidden DOM elements** — elements visible to DOM parsers but not rendered (display:none, off-screen, zero-opacity). agents that "click" or reference them are flagged. humans can't interact with what they can't see.
+- **ambiguity resistance** — page presents something slightly odd or ambiguous. humans shrug and continue naturally. LLMs over-analyze, ask for clarification, or freeze. measure time-to-next-action after ambiguity.
+- **obviousness tests** — a button says "click here to verify." humans click it. an LLM might inspect it, read its attributes, or try to find a trick. measure the ratio of direct-action vs. inspection-action.
+- **interaction entropy** — humans have natural randomness (variable click positions, imperfect trajectories, hesitation). agents have patterns (precise coordinates, sequential steps, tool-call-shaped delays). measure entropy across the full interaction trace.
+- **delay signatures** — agents have characteristic timing: API call latency followed by sequential tool execution. humans have variable delays (reading, thinking, distraction, tab-switch). model the delay distribution.
+- **multi-turn pattern detection** — agents that interact across multiple pages/forms follow sequential tool-use patterns (fill field → submit → wait → fill next). humans have organic, non-linear navigation (back, skip, revisit).
+
+### verdict matrix
+
+| behavioral | environment | traps | judgment | token | verdict to operator |
+|---|---|---|---|---|---|
+| natural | clean | no trap triggered | n/a | **high-trust** | human — accept |
+| automated | dirty | trap triggered | n/a | **none / blocked** | bot — reject |
+| natural | clean | trap triggered | pass | **low-trust** | AI agent (sophisticated) — operator decides |
+| any | any | no trap | fail | **none / blocked** | bot (LLM solver) — reject |
+| natural | clean | ambiguous | ambiguous | **low-trust** | uncertain — operator decides |
+
+**important edge cases:**
+- **VPN users** — IP reputation is NOT a primary signal. many legitimate users use VPNs. behavioral telemetry + environment traps are the primary signals. vpn usage alone should not downgrade trust.
+- **frequent captcha solvers** — some users naturally solve many captchas (developers, QA, privacy-conscious users). their timing patterns might look unusual. calibration threshold must not flag legitimate power users.
+- **tor users** — similar to vpn. behavioral signals matter more than network identity.
+
+the token carries the verdict and trust level. the operator decides their risk tolerance via `/api/verify`. most real humans get high-trust tokens instantly (layers 1-3 clean). bots get blocked or flagged tokens they can't use.
+
+### escalation policy
+
+1. layers 1+2 run on every request — zero friction
+2. layer 3 (traps) is always present in the page — invisible to humans
+3. if layers 1-3 all say "clean human" → issue **high-trust token** immediately. no challenge shown.
+4. if any layer is ambiguous → escalate to layer 4 (public pool judgment unit)
+5. if layer 4 passed → issue **standard-trust token**
+6. if layer 4 failed or layers 1-3 were flagged → issue **low-trust token** (or block, per operator config)
+7. honeypot units (D13.4) are silently seeded in layer 4 — flunking = low-trust or blocked
 
 ## the other defenses (D13)
 
@@ -30,7 +84,7 @@ even taste degrades if a bot brute-forces. layers:
 2. engagement window — 2.5–4s minimum, variance check.
 3. interaction-required hard tiers — drag-to-rank, highlight-the-span, drag-onto-moving-target.
 4. honeypot units — quietly seeded units where the obvious-LLM-answer is wrong by design. flunking = flagged.
-5. opaque scoring — token issues unconditionally, the gold-agreement score resolves hours later. bot can't tight-loop the verifier.
+5. opaque scoring — token carries a trust level; the gold-agreement score refines it hours later. operator can reject low-trust tokens immediately or accept and refine asynchronously.
 
 ## what's in this repo
 
@@ -51,7 +105,9 @@ a next.js 14 app. sqlite persistence. iframe SDK.
 | `/api/verify` | server-side token verification (operator-key auth) |
 | `/v1.js` | drop-in widget loader (pill mode default, modal expands on click) |
 
-unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold). honeypot variants of taste pool units.
+unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold), **skill_diff_review** (hermes skill update judgment, weighted consensus API), **media_quality** (AI-generated image/video rating), **media_origin** (AI-vs-real binary with honeypot seeding). honeypot variants of taste pool units.
+
+unit types designed (V5 — implementation queued): `tool_call_validity`, `reasoning_trace_quality`, `code_diff_review`, `response_factuality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`. these generalize panel beyond hermes-native surfaces to any agent that emits tool calls, reasoning traces, code patches, or GUI actions — including claude code, codex, opencode, cursor, windsurf, and any MCP/ACP-compatible harness.
 
 ## operator integration — closing the feedback loop
 
@@ -78,6 +134,15 @@ renders as a ~240px-wide pill (`verify you're human`). click → modal overlay w
 modes:
 - `data-panel-mode="pill"` (default) — Cloudflare-Turnstile-shape compact widget
 - `data-panel-mode="inline"` — full inline iframe (legacy)
+
+### operator bot policy system (v2+)
+
+operators can assign, rotate, or revoke API keys for specific bots, pages, services, and endpoints. policies are scoped to specific entry points, allowing selective bot allowlisting and per-endpoint risk tolerance.
+
+- **per-path policies** — different risk tolerance on /login (strict) vs /about (permissive)
+- **bot registry** — register specific bots (googlebot, bingbot, monitoring bots) with verification methods
+- **key management** — rotate/revoke keys scoped to specific bots/pages/services
+- **panel-data controls** — enable/disable data collection per policy scope, tune retention, tag bot vs human data
 
 ### feed your outputs back into the queue (HMAC-signed)
 
@@ -119,9 +184,25 @@ operator secret env vars on panel: `PANEL_INGEST_SECRET_<UPPERCASE_SITEKEY_DASHE
 
 ## status
 
-proof of concept. it runs. it persists. it collects behavioral signals. it has the pool split.
+working prototype. it runs, persists, collects behavioral signals, has the pool split, weighted consensus on skill reviews, media rating with honeypot seeding, and a live integration on img.goku.codes.
 
-it does not have: SOC 2, BAA, a paying customer, a real bot-flag rate measured on adversarial traffic, the scrubber-proxy GA, the trust-tier paid pipeline, the panel-data API. all on the roadmap, none shipped.
+shipped: captcha widget (pill + inline modes), rater dashboard, operator dashboard, skill-review API (ingest + weighted verdict), media quality/origin types, HMAC-signed ingest, per-site secrets, legal pages, pricing page, rater-as-reviewer loop.
+
+in progress: scrubber-proxy GA, trust-tier paid pipeline, panel-data API, V5 broader agent scope unit types, SOC 2 posture.
+
+## for agent developers
+
+if you're building an agent harness (claude code plugin, codex integration, opencode agent, MCP server, browser-use wrapper), panel can be your preference-data layer:
+
+1. **drop in the captcha** — one script tag, your visitors get bot-blocking
+2. **emit agent outputs** — POST tool calls, code diffs, reasoning traces, media outputs via the HMAC-signed ingest API
+3. **get preference data** — humans judge your agent's outputs as part of proving they're human. you keep the dataset.
+
+what you can ingest today: `ai_output_rating` (image/text), `media_quality`, `media_origin`, `skill_diff_review`.
+
+coming (V5): `tool_call_validity`, `code_diff_review`, `reasoning_trace_quality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`, `response_factuality`. **note: all V5 technical types are paid-rater-pool-only.** your agent's outputs become units for trusted raters, not for your site's anonymous captcha visitors. your visitors solve taste/perception/human-hard units; your agent outputs get judged by the trust-tier rater pool.
+
+the idea: every agent run produces rateable artifacts. panel turns your captcha surface into a continuous quality signal on your agent's actual work — not a synthetic benchmark, not a survey, not a focus group. real users, real outputs, real judgments.
 
 ## run locally
 
@@ -144,13 +225,14 @@ production: panel.goku.codes. systemd-user unit + nginx reverse proxy.
 
 ## who this is for
 
-everybody who'd otherwise drop in recaptcha or turnstile. the wedge is a change in thinking, not a vertical.
+everybody who'd otherwise drop in recaptcha or turnstile — and every agent developer who wants continuous human feedback on their outputs without building a labeling pipeline.
 
-- today the unit is "judge a piece of agent output" (taste, sarcasm, dub-sync, AI-vs-real). tomorrow the unit can be any signal a site already wants from a human — survey, sentiment, recall, recognition, preference.
+- today the unit is "judge a piece of agent output" (taste, sarcasm, dub-sync, AI-vs-real, code diffs, tool calls, reasoning traces, GUI actions, media quality). tomorrow the unit can be any signal a site already wants from a human — survey, sentiment, recall, recognition, preference.
 - the captcha is the distribution channel. the judgment is the product. every site that drops in panel gets bot-blocking and a continuous human-feedback stream on whatever it routes through.
 - so the addressable surface is the whole recaptcha/turnstile/hCaptcha footprint — signup forms, comments, checkout, paywalls, downloads, login, password reset — across consumer, b2b, enterprise, gov, dev tools, hospital portals, ticketing, e-com, AI products, anywhere a human-vs-bot gate sits today.
+- and the agent-developer surface is the whole claude code / codex / opencode / cursor / windsurf / MCP ecosystem — anywhere an agent produces outputs a human could judge.
 
-early lighthouse design partners (where the dogfood loop is sharpest) live in `(600) Work/panel/gtm/Segments.md`. the platform itself has no vertical lock-in.
+the platform itself has no vertical lock-in and no agent-harness lock-in. V5 unit types are designed to work with any harness that emits structured outputs.
 
 ## license
 
