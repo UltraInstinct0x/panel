@@ -109,7 +109,7 @@ function seedIfEmpty() {
   const row = db.prepare('SELECT COUNT(*) AS n FROM units').get() as { n: number };
   if (row.n > 0) return;
   const ins = db.prepare(
-    'INSERT INTO units (id, json, pool, is_honeypot, created_at) VALUES (?, ?, ?, ?, ?)'
+    'INSERT OR IGNORE INTO units (id, json, pool, is_honeypot, created_at) VALUES (?, ?, ?, ?, ?)'
   );
   const now = Date.now();
   const tx = db.transaction((units: Unit[]) => {
