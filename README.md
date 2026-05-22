@@ -17,10 +17,44 @@ so the unit pool is split by who-wins-the-race:
 
 | pool | unit shape | who wins | where it runs |
 |---|---|---|---|
-| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real detection, code diff review, gui action sequence, multi-turn coherence, commit description quality | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
-| paid rater | tool_call_validity, reasoning_trace_quality, response_factuality, safety_alignment, step_validity, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
+| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real, media quality, media origin, **human-hard challenges** (mental math, exact counting, string ops, sorting) | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
+| paid rater | tool_call_validity, reasoning_trace_quality, code_diff_review, response_factuality, safety_alignment, skill_diff_review, step_validity, multi_turn_coherence, commit_description_quality, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
 
-technical units never touch anonymous raters. that's the whole wedge. hCaptcha can't pivot to taste-units without rebuilding their gold-seed quality model from scratch.
+**key rule: public pool units must be grandma-safe.** no code diffs, no tool calls, no reasoning traces. public pool tests only what AI struggles with (taste, nuance, perception) and what humans struggle with (rapid computation, exact counting). technical judgment units live exclusively in the paid rater pool.
+
+## the 4-signal verification model
+
+panel doesn't just throw a challenge at every visitor. passive signals run first, and a captcha challenge is only escalated when the passive layers are ambiguous. four signals feed a unified verdict:
+
+| # | signal | mode | what it catches |
+|---|---|---|---|
+| 1 | **behavioral telemetry** | passive, continuous | mouse entropy, scroll variance, focus events, dwell time, paste detection, timing distributions. bots have uniform timing; humans have variance. AI agents using browser automation leave detectable CDP artifacts. |
+| 2 | **environment fingerprint** | passive, one-shot | WebDriver flags, headless browser indicators, automation framework globals (Selenium, Puppeteer, Playwright), canvas/WebGL fingerprints. catches known bot infrastructure. |
+| 3 | **AI-hard challenge** | active, escalated | taste, sarcasm, cultural recency, perception, AI-vs-real, dub-sync naturalness. things current AI is bad at, humans are good at. only served when signals 1+2 are ambiguous. |
+| 4 | **human-hard challenge** | active, escalated | rapid mental math, exact character counting, string reversal, sorting, binary decoding. things humans are bad at, AI is trivial at. served alongside or after signal 3. |
+
+### cross-check logic
+
+the verdict is a function of all four signals, not any single one:
+
+| behavioral | environment | AI-hard | human-hard | verdict |
+|---|---|---|---|---|
+| natural | clean | pass | fail | **human** (nails taste, can't do math fast) |
+| automated | dirty | fail | pass | **AI agent** (breezes math, fails nuance) |
+| natural | clean | pass | pass | **suspicious** (human savant or AI solving taste — escalate to honeypot) |
+| automated | clean | fail | fail | **bot** (script, no intelligence) |
+| any | any | — | — | **low confidence** → issue token but flag for async review (opaque scoring, D13.5) |
+
+the token issues unconditionally (so the user isn't blocked). the verdict resolves asynchronously using the gold-agreement score hours later. bots can't tight-loop the verifier.
+
+### escalation policy
+
+1. signals 1+2 run on every request — zero friction
+2. if both say "clean human" → issue T0 invisible token. no challenge shown.
+3. if either is ambiguous → escalate to signal 3 (AI-hard unit from public pool)
+4. if signal 3 result is ambiguous → escalate to signal 4 (human-hard challenge)
+5. final verdict = cross-check of all collected signals
+6. honeypot units (D13.4) are silently seeded across signals 3+4 — flunking = flagged
 
 ## the other defenses (D13)
 
@@ -137,7 +171,7 @@ if you're building an agent harness (claude code plugin, codex integration, open
 
 what you can ingest today: `ai_output_rating` (image/text), `media_quality`, `media_origin`, `skill_diff_review`.
 
-coming (V5): `tool_call_validity`, `code_diff_review`, `reasoning_trace_quality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`, `response_factuality`.
+coming (V5): `tool_call_validity`, `code_diff_review`, `reasoning_trace_quality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`, `response_factuality`. **note: all V5 technical types are paid-rater-pool-only.** your agent's outputs become units for trusted raters, not for your site's anonymous captcha visitors. your visitors solve taste/perception/human-hard units; your agent outputs get judged by the trust-tier rater pool.
 
 the idea: every agent run produces rateable artifacts. panel turns your captcha surface into a continuous quality signal on your agent's actual work — not a synthetic benchmark, not a survey, not a focus group. real users, real outputs, real judgments.
 
