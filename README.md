@@ -17,8 +17,8 @@ so the unit pool is split by who-wins-the-race:
 
 | pool | unit shape | who wins | where it runs |
 |---|---|---|---|
-| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real detection | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
-| paid rater | code skill_diff, step_validity, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
+| public captcha | taste, sarcasm, dub-sync, voice naturalness, cultural recency, perception, sincere-vs-sarcastic, AI-vs-real detection, code diff review, gui action sequence, multi-turn coherence, commit description quality | human (or ambiguous) | `/demo/gate`, drive-by raters, anonymous |
+| paid rater | tool_call_validity, reasoning_trace_quality, response_factuality, safety_alignment, step_validity, pairwise traces, hallucination calls | flagship wins easy | dogfood loop, T2+ trust raters, internal harness |
 
 technical units never touch anonymous raters. that's the whole wedge. hCaptcha can't pivot to taste-units without rebuilding their gold-seed quality model from scratch.
 
@@ -51,7 +51,9 @@ a next.js 14 app. sqlite persistence. iframe SDK.
 | `/api/verify` | server-side token verification (operator-key auth) |
 | `/v1.js` | drop-in widget loader (pill mode default, modal expands on click) |
 
-unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold). honeypot variants of taste pool units.
+unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold), **skill_diff_review** (hermes skill update judgment, weighted consensus API), **media_quality** (AI-generated image/video rating), **media_origin** (AI-vs-real binary with honeypot seeding). honeypot variants of taste pool units.
+
+unit types designed (V5 — implementation queued): `tool_call_validity`, `reasoning_trace_quality`, `code_diff_review`, `response_factuality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`. these generalize panel beyond hermes-native surfaces to any agent that emits tool calls, reasoning traces, code patches, or GUI actions — including claude code, codex, opencode, cursor, windsurf, and any MCP/ACP-compatible harness.
 
 ## operator integration — closing the feedback loop
 
@@ -119,9 +121,25 @@ operator secret env vars on panel: `PANEL_INGEST_SECRET_<UPPERCASE_SITEKEY_DASHE
 
 ## status
 
-proof of concept. it runs. it persists. it collects behavioral signals. it has the pool split.
+working prototype. it runs, persists, collects behavioral signals, has the pool split, weighted consensus on skill reviews, media rating with honeypot seeding, and a live integration on img.goku.codes.
 
-it does not have: SOC 2, BAA, a paying customer, a real bot-flag rate measured on adversarial traffic, the scrubber-proxy GA, the trust-tier paid pipeline, the panel-data API. all on the roadmap, none shipped.
+shipped: captcha widget (pill + inline modes), rater dashboard, operator dashboard, skill-review API (ingest + weighted verdict), media quality/origin types, HMAC-signed ingest, per-site secrets, legal pages, pricing page, rater-as-reviewer loop.
+
+in progress: scrubber-proxy GA, trust-tier paid pipeline, panel-data API, V5 broader agent scope unit types, SOC 2 posture.
+
+## for agent developers
+
+if you're building an agent harness (claude code plugin, codex integration, opencode agent, MCP server, browser-use wrapper), panel can be your preference-data layer:
+
+1. **drop in the captcha** — one script tag, your visitors get bot-blocking
+2. **emit agent outputs** — POST tool calls, code diffs, reasoning traces, media outputs via the HMAC-signed ingest API
+3. **get preference data** — humans judge your agent's outputs as part of proving they're human. you keep the dataset.
+
+what you can ingest today: `ai_output_rating` (image/text), `media_quality`, `media_origin`, `skill_diff_review`.
+
+coming (V5): `tool_call_validity`, `code_diff_review`, `reasoning_trace_quality`, `gui_action_sequence`, `safety_alignment`, `multi_turn_coherence`, `commit_description_quality`, `response_factuality`.
+
+the idea: every agent run produces rateable artifacts. panel turns your captcha surface into a continuous quality signal on your agent's actual work — not a synthetic benchmark, not a survey, not a focus group. real users, real outputs, real judgments.
 
 ## run locally
 
@@ -144,13 +162,14 @@ production: panel.goku.codes. systemd-user unit + nginx reverse proxy.
 
 ## who this is for
 
-everybody who'd otherwise drop in recaptcha or turnstile. the wedge is a change in thinking, not a vertical.
+everybody who'd otherwise drop in recaptcha or turnstile — and every agent developer who wants continuous human feedback on their outputs without building a labeling pipeline.
 
-- today the unit is "judge a piece of agent output" (taste, sarcasm, dub-sync, AI-vs-real). tomorrow the unit can be any signal a site already wants from a human — survey, sentiment, recall, recognition, preference.
+- today the unit is "judge a piece of agent output" (taste, sarcasm, dub-sync, AI-vs-real, code diffs, tool calls, reasoning traces, GUI actions, media quality). tomorrow the unit can be any signal a site already wants from a human — survey, sentiment, recall, recognition, preference.
 - the captcha is the distribution channel. the judgment is the product. every site that drops in panel gets bot-blocking and a continuous human-feedback stream on whatever it routes through.
 - so the addressable surface is the whole recaptcha/turnstile/hCaptcha footprint — signup forms, comments, checkout, paywalls, downloads, login, password reset — across consumer, b2b, enterprise, gov, dev tools, hospital portals, ticketing, e-com, AI products, anywhere a human-vs-bot gate sits today.
+- and the agent-developer surface is the whole claude code / codex / opencode / cursor / windsurf / MCP ecosystem — anywhere an agent produces outputs a human could judge.
 
-early lighthouse design partners (where the dogfood loop is sharpest) live in `(600) Work/panel/gtm/Segments.md`. the platform itself has no vertical lock-in.
+the platform itself has no vertical lock-in and no agent-harness lock-in. V5 unit types are designed to work with any harness that emits structured outputs.
 
 ## license
 
