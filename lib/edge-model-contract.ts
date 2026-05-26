@@ -44,9 +44,14 @@ export function ingestEdgeModelPayload(raw: unknown): EdgeModelIngest {
     ? p.reason_codes.map(String).map(s => s.slice(0, 64)).filter(Boolean).slice(0, MAX_REASON_CODES)
     : [];
   const probs = (p.local_class_probs && typeof p.local_class_probs === 'object')
-    ? Object.fromEntries(Object.entries(p.local_class_probs).filter(([, v]) => Number.isFinite(Number(v))).slice(0, 8))
+    ? Object.fromEntries(
+        Object.entries(p.local_class_probs)
+          .map(([k, v]) => [k, toFiniteNumber(v)] as const)
+          .filter(([, v]) => v !== null)
+          .slice(0, 8)
+      ) as Record<string, number>
     : {};
-  const localScore = Number.isFinite(Number(p.local_score)) ? Number(p.local_score) : null;
+  const localScore = toFiniteNumber(p.local_score);
   const modelError = p.model_error === true;
   const fallback = runtime === 'rules_only' || modelError;
   if (fallback && !reasons.includes('edge_model_contract_fallback')) reasons.push('edge_model_contract_fallback');
@@ -94,4 +99,10 @@ function clamp01(n: number): number {
   if (n < 0) return 0;
   if (n > 1) return 1;
   return n;
+}
+
+function toFiniteNumber(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
