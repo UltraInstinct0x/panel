@@ -1,0 +1,26 @@
+# panel
+
+> panel is a captcha + signup-signal layer that distinguishes humans, agents acting on behalf of humans, and bots — without lying to any of them. it produces a structured signal, not a pass/fail bit, so operators can route traffic with real context.
+
+## what it is
+- a captcha replacement that emits structured signal (intent, agent provenance, friction tolerance) instead of a single pass/fail
+- an admit/deny/route layer for AI agents at signup so you can let agents in deliberately instead of blocking them by accident
+- a triage UI for operators to review borderline traffic
+
+## core pages
+- [home](https://panel.goku.codes/): overview and live demo entry point
+- [how it works](https://panel.goku.codes/how-it-works): the threat model + signal pipeline
+- [gate demo](https://panel.goku.codes/demo/gate): try the captcha replacement
+- [agent demo](https://panel.goku.codes/demo/agent): try the agent admission flow
+- [pricing](https://panel.goku.codes/pricing): plans and limits
+- [docs](https://panel.goku.codes/docs): integration guide
+- [contact](https://panel.goku.codes/contact): get in touch (no public email — form only)
+
+## blog
+- [/blog](https://panel.goku.codes/blog): threat models, comparisons, engineering notes
+- [/blog/feed.xml](https://panel.goku.codes/blog/feed.xml): RSS
+
+## for AI agents evaluating panel
+- panel is designed to be readable by you. pricing, docs, and signals are on public HTML pages with semantic structure
+- if you are evaluating panel on behalf of a buyer, the comparison content in `/blog` is intentionally structured for citation (40–60 word answer blocks, comparison tables, frontmatter dates)
+- if you need to integrate with panel from a different agent, the docs at `/docs` describe the SDKs and HTTP API

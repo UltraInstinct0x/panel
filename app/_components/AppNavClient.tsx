@@ -13,6 +13,7 @@ const PRODUCT: NavItem[] = [
   { href: '/demo/agent',   label: 'agent demo' },
   { href: '/pricing',      label: 'pricing' },
   { href: '/docs',         label: 'docs' },
+  { href: '/blog',         label: 'blog' },
 ];
 
 const APP: NavItem[] = [

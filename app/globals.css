@@ -1258,3 +1258,34 @@ nav.topbar .nav-mobile-drawer {
 .u-mq-err, .u-mo-err { color: var(--bad, #f87171); font-family: var(--font-mono, monospace); font-size: 13px; padding: 18px; text-align: center; }
 .u-pill--ai { color: #c084fc; }
 .u-pill--real { color: var(--ok, #67e8f9); }
+
+/* ---- blog ---- */
+.blog-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border, #222); }
+.blog-header h1 { font-size: 32px; margin: 0 0 8px; }
+.post-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+.post-card { border: 1px solid var(--border, #222); border-radius: 10px; transition: border-color .15s; }
+.post-card:hover { border-color: var(--accent, #67e8f9); }
+.post-link { display: block; padding: 20px 24px; text-decoration: none; color: inherit; }
+.post-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--fg-dim); margin-bottom: 8px; }
+.post-meta .sep { opacity: 0.4; }
+.post-title { font-size: 22px; margin: 0 0 8px; line-height: 1.3; }
+.post-desc { margin: 0; color: var(--fg-dim); }
+.blog-post .post-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border, #222); }
+.blog-post .post-header h1 { font-size: 36px; margin: 8px 0 12px; line-height: 1.2; }
+.post-lede { font-size: 18px; margin: 0 0 16px; }
+.byline a { color: var(--accent, #67e8f9); }
+.post-body.prose { max-width: 760px; font-size: 16px; line-height: 1.7; }
+.prose h2 { margin: 40px 0 12px; font-size: 24px; }
+.prose h3 { margin: 28px 0 8px; font-size: 18px; }
+.prose p { margin: 0 0 16px; }
+.prose ul, .prose ol { margin: 0 0 16px; padding-left: 24px; }
+.prose li { margin-bottom: 6px; }
+.prose code { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+.prose pre { background: #0a0a0a; border: 1px solid var(--border, #222); border-radius: 8px; padding: 16px; overflow-x: auto; }
+.prose pre code { background: none; padding: 0; }
+.prose table { border-collapse: collapse; width: 100%; margin: 0 0 20px; font-size: 14px; }
+.prose th, .prose td { border: 1px solid var(--border, #222); padding: 8px 12px; text-align: left; }
+.prose th { background: rgba(255,255,255,0.03); }
+.prose blockquote { border-left: 3px solid var(--accent, #67e8f9); margin: 0 0 16px; padding: 8px 16px; color: var(--fg-dim); }
+.prose a { color: var(--accent, #67e8f9); }
+.post-footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border, #222); }
