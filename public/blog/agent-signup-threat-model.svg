@@ -1,0 +1,17 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="agent signup threat model">
+  <rect width="1200" height="630" fill="#0a0f1a"/>
+  <text x="60" y="90" fill="#67e8f9" font-family="JetBrains Mono, monospace" font-size="34">agent signup threat model</text>
+  <rect x="80" y="150" width="280" height="120" rx="10" fill="#111827" stroke="#4b5563"/>
+  <text x="115" y="205" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="20">authorized agent</text>
+  <text x="115" y="235" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="16">admit + tag + throttle</text>
+  <rect x="460" y="150" width="280" height="120" rx="10" fill="#111827" stroke="#4b5563"/>
+  <text x="510" y="205" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="20">fake agent</text>
+  <text x="510" y="235" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="16">deny / challenge</text>
+  <rect x="840" y="150" width="280" height="120" rx="10" fill="#111827" stroke="#4b5563"/>
+  <text x="920" y="205" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="20">human</text>
+  <text x="885" y="235" fill="#60a5fa" font-family="JetBrains Mono, monospace" font-size="16">normal signup flow</text>
+  <rect x="250" y="360" width="700" height="180" rx="12" fill="#0f172a" stroke="#334155"/>
+  <text x="290" y="410" fill="#cbd5e1" font-family="JetBrains Mono, monospace" font-size="20">provenance checks: signed token • known egress • TLS profile</text>
+  <text x="290" y="445" fill="#cbd5e1" font-family="JetBrains Mono, monospace" font-size="20">policy engine: route / rate-limit / step-up auth / log actor=agent</text>
+  <text x="290" y="480" fill="#cbd5e1" font-family="JetBrains Mono, monospace" font-size="20">monitor: abuse drift, token failures, anomalous burst patterns</text>
+</svg>

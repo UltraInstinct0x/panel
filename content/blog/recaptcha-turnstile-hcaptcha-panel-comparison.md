@@ -5,10 +5,20 @@ date: 2026-05-26
 description: "Four captcha-replacement systems, compared on what they actually measure, what they emit, and what operators can do with the output. No marketing summary — the underlying signal."
 tags: [captcha, comparison, recaptcha, turnstile, hcaptcha, agent-traffic]
 author: goku
+image: /blog/captcha-systems-comparison.svg
+faq:
+  - question: "which captcha is best if I have real AI-agent traffic?"
+    answer: "the system that returns structured, agent-aware verdicts is best for routing; bit-only systems are optimized for human-vs-bot only."
+  - question: "is Turnstile or reCAPTCHA enough for low agent traffic?"
+    answer: "yes, for mostly human traffic they are often sufficient and operationally simple."
+  - question: "can I combine systems?"
+    answer: "yes — run a cheap edge gate first, then use a richer signal layer at signup or checkout for nuanced policy decisions."
 draft: false
 ---
 
 ## the short version
+
+![diagram: captcha systems comparison](/blog/captcha-systems-comparison.svg)
 
 reCAPTCHA v3, Turnstile, hCaptcha, and panel all sit at the same point in the request lifecycle — the front door. They differ on three axes that actually matter: **what they measure**, **what they return to the operator**, and **how they handle the agent population**. This post compares those three axes head-to-head with no marketing summary.
 

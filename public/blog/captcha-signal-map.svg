@@ -1,0 +1,17 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="captcha signal map">
+  <rect width="1200" height="630" fill="#0b1020"/>
+  <text x="60" y="90" fill="#7dd3fc" font-family="JetBrains Mono, monospace" font-size="34">captcha: pass/fail vs structured signal</text>
+  <rect x="70" y="160" width="280" height="120" rx="10" fill="#111827" stroke="#374151"/>
+  <text x="95" y="220" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="24">raw sensors</text>
+  <text x="95" y="248" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="16">mouse • dwell • network</text>
+  <rect x="455" y="160" width="280" height="120" rx="10" fill="#111827" stroke="#374151"/>
+  <text x="505" y="220" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="24">pass/fail bit</text>
+  <rect x="840" y="120" width="300" height="220" rx="10" fill="#111827" stroke="#22d3ee"/>
+  <text x="875" y="175" fill="#22d3ee" font-family="JetBrains Mono, monospace" font-size="24">structured verdict</text>
+  <text x="875" y="215" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="16">human: 0.12</text>
+  <text x="875" y="245" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="16">agent: 0.82</text>
+  <text x="875" y="275" fill="#e5e7eb" font-family="JetBrains Mono, monospace" font-size="16">bot: 0.06</text>
+  <line x1="350" y1="220" x2="455" y2="220" stroke="#6b7280" stroke-width="4"/>
+  <line x1="735" y1="220" x2="840" y2="220" stroke="#22d3ee" stroke-width="4"/>
+  <text x="70" y="560" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="20">operators need routing signal, not a single admit/deny bit.</text>
+</svg>

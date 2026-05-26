@@ -1287,5 +1287,6 @@ nav.topbar .nav-mobile-drawer {
 .prose th, .prose td { border: 1px solid var(--border, #222); padding: 8px 12px; text-align: left; }
 .prose th { background: rgba(255,255,255,0.03); }
 .prose blockquote { border-left: 3px solid var(--accent, #67e8f9); margin: 0 0 16px; padding: 8px 16px; color: var(--fg-dim); }
+.prose img { display: block; width: 100%; height: auto; margin: 16px 0 22px; border: 1px solid var(--border, #222); border-radius: 10px; background: #0a0a0a; }
 .prose a { color: var(--accent, #67e8f9); }
 .post-footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border, #222); }

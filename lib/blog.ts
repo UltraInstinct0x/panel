@@ -15,6 +15,8 @@ export type PostMeta = {
   tags: string[];
   author: string; // display name
   draft: boolean;
+  image?: string;
+  faq: Array<{ question: string; answer: string }>;
 };
 
 export type Post = PostMeta & {
@@ -32,6 +34,19 @@ function parseDraft(value: unknown): boolean {
 }
 
 function parseMeta(slug: string, data: Record<string, unknown>): PostMeta {
+  const faq = Array.isArray(data.faq)
+    ? data.faq
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null;
+          const row = item as Record<string, unknown>;
+          const question = String(row.question ?? '').trim();
+          const answer = String(row.answer ?? '').trim();
+          if (!question || !answer) return null;
+          return { question, answer };
+        })
+        .filter((v): v is { question: string; answer: string } => Boolean(v))
+    : [];
+
   return {
     slug,
     title: String(data.title ?? slug),
@@ -41,6 +56,8 @@ function parseMeta(slug: string, data: Record<string, unknown>): PostMeta {
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     author: String(data.author ?? 'goku'),
     draft: parseDraft(data.draft),
+    image: data.image ? String(data.image) : undefined,
+    faq,
   };
 }
 

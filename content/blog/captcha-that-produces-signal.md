@@ -5,10 +5,20 @@ date: 2026-05-26
 description: "Traditional captcha returns a single bit — human or not. That bit hides everything operators actually need to make a routing decision. Here's what a signal-producing gate looks like instead."
 tags: [captcha, threat-model, signal, agent-traffic]
 author: goku
+image: /blog/captcha-signal-map.svg
+faq:
+  - question: "what is a signal-producing captcha?"
+    answer: "a gate that returns structured evidence (population likelihoods, confidence, and fired signals) instead of a single pass/fail bit."
+  - question: "why is pass/fail insufficient now?"
+    answer: "because authorized AI agents and autonomous bots both often fail legacy challenges, but operators must route them differently."
+  - question: "can this coexist with existing captcha controls?"
+    answer: "yes — operators can keep a pass/fail gate at the edge and use structured signal deeper in signup for routing decisions."
 draft: false
 ---
 
 ## the short version
+
+![diagram: pass/fail vs structured signal](/blog/captcha-signal-map.svg)
 
 A captcha that returns only pass/fail throws away most of what its sensors saw. The page knows whether the visitor moved a mouse, scrolled, dwelled, copy-pasted, switched tabs, and how the request was constructed at the network layer. Collapsing all of that into one bit means the operator can't tell a confused human apart from a low-effort scraper apart from a legitimate agent — they all show up as "fail."
 
