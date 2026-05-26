@@ -93,20 +93,39 @@
   }
 
   function invokeEdgeModel(features, timeoutMs) {
-    // phase 2: no real model, always return rules_only immediately.
-    // future: spawn worker, load WASM, run inference with timeout guard.
+    // phase 2: no real model yet; still enforce timeout contract now so
+    // future inference wiring cannot accidentally hang resolve path.
     return new Promise(function (resolve) {
+      var done = false;
+      var timeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : 100;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        resolve({
+          local_score: null,
+          local_class_probs: {},
+          reason_codes: ['edge_model_timeout', 'phase2_inline'],
+          model_version: 'edge-risk-v1-scaffold',
+          feature_version: features && features.feature_version ? features.feature_version : 'v1',
+          runtime: 'rules_only',
+          model_error: true,
+        });
+      }, timeout);
+
       setTimeout(function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
         resolve({
           local_score: null,
           local_class_probs: {},
           reason_codes: ['edge_model_scaffold', 'phase2_inline'],
           model_version: 'edge-risk-v1-scaffold',
-          feature_version: features.feature_version || 'v1',
+          feature_version: features && features.feature_version ? features.feature_version : 'v1',
           runtime: 'rules_only',
           model_error: false,
         });
-      }, 0); // async but immediate for phase 2
+      }, 0);
     });
   }
 

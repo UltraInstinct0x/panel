@@ -125,32 +125,27 @@
       // WebDriver flag
       if (navigator.webdriver === true) flags.webdriver = true;
 
-      // Headless chrome
+      // Headless chrome (conservative signal only)
       if ((/HeadlessChrome/i).test(navigator.userAgent)) flags.headless = true;
-      if (navigator.plugins && navigator.plugins.length === 0 && !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        flags.headless = true; // heuristic: no plugins on desktop
-      }
 
       // PhantomJS
       if (window.callPhantom || window._phantom) flags.phantom = true;
 
-      // Selenium
+      // Selenium globals
       if (window.document && (window.document.__webdriver_evaluate || window.document.__selenium_evaluate || window.document.__webdriver_script_fn || window.document.__driver_evaluate || window.document.__webdriver_unwrapped || window.document.__selenium_unwrapped)) {
         flags.selenium = true;
       }
 
-      // Puppeteer
-      if (window.chrome && window.chrome.runtime && !window.chrome.app) {
-        // heuristic: chrome.runtime without chrome.app (puppeteer pattern)
+      // Puppeteer globals (avoid broad chrome.runtime heuristics)
+      if (window.__puppeteer_evaluation_script__ || window.__nightmare || window.__webdriver_script_fn) {
         flags.puppeteer = true;
       }
 
-      // Playwright
+      // Playwright globals
       if (window.__playwright || window.__pw_manual) flags.playwright = true;
 
-      // CDP (Chrome DevTools Protocol)
-      if (window.chrome && window.chrome.csi && typeof window.chrome.csi === 'function') {
-        // heuristic: csi() often present in automated contexts
+      // CDP-oriented globals/signals (conservative)
+      if (window.__cdp || window.__chromeDevtoolsHook) {
         flags.cdp = true;
       }
     } catch (_) {

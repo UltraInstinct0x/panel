@@ -43,6 +43,11 @@ jobs:
       - name: typecheck
         run: pnpm exec tsc --noEmit
 
+      - name: edge scaffold tests
+        run: |
+          pnpm run test:edge-runtime-fallback
+          pnpm run test:edge-feature-schema
+
       - name: build
         run: pnpm build
 

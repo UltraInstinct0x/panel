@@ -10,6 +10,8 @@
     "test:scrubber-gate": "node __tests__/scrubber-gate.test.cjs",
     "test:operator-mint": "tsx __tests__/operator-mint.test.ts",
     "test:archive-seeder": "tsx __tests__/v7-archive-seeder.test.ts",
+    "test:edge-runtime-fallback": "tsx __tests__/edge-runtime-fallback.test.ts",
+    "test:edge-feature-schema": "tsx __tests__/edge-feature-schema.test.ts",
     "seed:archive": "tsx scripts/seed-archive-honeypots.ts"
   },
   "dependencies": {
