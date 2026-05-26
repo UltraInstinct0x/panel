@@ -11,6 +11,7 @@ export default function Nav() {
       <Link href="/dashboard">dashboard</Link>
       <Link href="/operator">operator</Link>
       <Link href="/privacy">privacy</Link>
+      <Link href="/contact">contact</Link>
     </nav>
   );
 }

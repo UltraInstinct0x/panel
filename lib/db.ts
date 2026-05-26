@@ -131,6 +131,27 @@ function openDb(): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_op_apps_status ON operator_applications(status, created_at);
   `);
+  // contact form submissions (replaces public mailto: addresses).
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS contact_submissions (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL, -- 'general' | 'security' | 'privacy' | 'billing' | 'legal' | 'abuse' | 'paid-train' | 'enterprise' | 'growth'
+      name TEXT,
+      email TEXT NOT NULL,
+      org TEXT,
+      subject TEXT,
+      message TEXT NOT NULL,
+      ip_hash TEXT,
+      user_agent TEXT,
+      status TEXT NOT NULL DEFAULT 'new', -- 'new' | 'triaged' | 'resolved' | 'spam'
+      created_at INTEGER NOT NULL,
+      handled_at INTEGER,
+      handled_by TEXT,
+      notes TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_contact_topic_status ON contact_submissions(topic, status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_contact_created ON contact_submissions(created_at DESC);
+  `);
   return d;
 }
 

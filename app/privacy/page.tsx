@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       </header>
 
       <div style={sx.warn}>
-        <strong>v0 — pending counsel review.</strong> reflects current panel data practices. wording may change after legal review. for questions: <code>privacy@goku.codes</code>.
+        <strong>v0 — pending counsel review.</strong> reflects current panel data practices. wording may change after legal review. for questions: use the <a href="/contact?topic=privacy">contact form</a> (topic: privacy).
       </div>
 
       <section>
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2 style={sx.h2}>who we are</h2>
-        <p>panel (UltraInstinct0x). contact: <code>privacy@goku.codes</code>. host: Oracle Cloud Frankfurt (DE). repo: github.com/UltraInstinct0x/panel.</p>
+        <p>panel (UltraInstinct0x). contact: <a href="/contact?topic=privacy">contact form</a> (topic: privacy). host: Oracle Cloud Frankfurt (DE). repo: github.com/UltraInstinct0x/panel.</p>
       </section>
 
       <section>
@@ -103,7 +103,7 @@ export default function PrivacyPage() {
             delete your data:
             <code style={sx.code}>POST /api/me/delete?rater_id=&lt;your-id&gt;</code>
           </li>
-          <li>email <code>privacy@goku.codes</code> for rectification, restriction, objection, or complaint.</li>
+          <li>use the <a href="/contact?topic=privacy">contact form</a> (topic: privacy) for rectification, restriction, objection, or complaint.</li>
         </ul>
         <p style={sx.muted}>
           we respond within 30 days. you can also complain to your DPA (BfDI in Germany, KVKK Kurumu in Türkiye, ICO in the UK, etc.).
@@ -116,7 +116,7 @@ export default function PrivacyPage() {
         <p>
           panel is hosted in Frankfurt (DE). most EU/EEA operators can use panel without cross-border concerns.
           for non-EU operators, our DPA includes SCCs (2021/914) and the UK addendum where applicable.
-          controller: panel (UltraInstinct0x). DPO not required (Art. 37). contact <code>privacy@goku.codes</code>.
+          controller: panel (UltraInstinct0x). DPO not required (Art. 37). contact via the <a href="/contact?topic=privacy">contact form</a> (topic: privacy).
         </p>
       </section>
 
@@ -141,7 +141,7 @@ export default function PrivacyPage() {
         <h2 style={sx.h2}>automated decisions</h2>
         <p>
           <code>/api/verify</code> returns a probability score. it does not produce legal effects on you — it gives the operator a captcha pass/fail.
-          email <code>privacy@goku.codes</code> if you believe a panel decision unfairly blocked you and we&apos;ll do a manual review.
+          use the <a href="/contact?topic=privacy">contact form</a> (topic: privacy) if you believe a panel decision unfairly blocked you and we&apos;ll do a manual review.
         </p>
       </section>
 
@@ -180,9 +180,9 @@ export default function PrivacyPage() {
       <section>
         <h2 style={sx.h2}>contact</h2>
         <ul>
-          <li>privacy + DSAR: <code>privacy@goku.codes</code></li>
-          <li>security: <code>security@goku.codes</code></li>
-          <li>general: <code>hi@goku.codes</code></li>
+          <li>privacy + DSAR: <a href="/contact?topic=privacy">contact form</a> (topic: privacy)</li>
+          <li>security: <a href="/contact?topic=security">contact form</a> (topic: security)</li>
+          <li>general: <a href="/contact?topic=general">contact form</a> (topic: general)</li>
         </ul>
       </section>
 

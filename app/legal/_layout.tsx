@@ -18,7 +18,7 @@ export function LegalPage({ title, version, lastUpdated, children }: { title: st
       </header>
 
       <div style={sx.warn}>
-        <strong>{version} — pending counsel review.</strong> reflects current panel practices. wording may change after legal review. questions: <code>privacy@goku.codes</code>.
+        <strong>{version} — pending counsel review.</strong> reflects current panel practices. wording may change after legal review. questions: use the <a href="/contact?topic=privacy">contact form</a> (topic: privacy).
       </div>
 
       {children}

@@ -127,7 +127,7 @@ export default function TermsPage() {
 
       <section>
         <h2 style={sx.h2}>14 · contact</h2>
-        <p>legal + general: <code>hi@goku.codes</code>. security: <code>security@goku.codes</code>.</p>
+        <p>legal + general: use the <a href="/contact?topic=general">contact form</a> (topic: general or legal). security reports: <a href="/contact?topic=security">contact form</a> (topic: security).</p>
       </section>
 
       <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #222', fontSize: 11, color: '#707070' }}>

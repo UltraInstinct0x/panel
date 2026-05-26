@@ -105,9 +105,9 @@ export default function TermsPage() {
       <section>
         <h2 style={sx.h2}>14 — contact</h2>
         <ul>
-          <li>contracts + billing: <code>billing@goku.codes</code></li>
-          <li>legal notices: <code>legal@goku.codes</code></li>
-          <li>abuse: <code>abuse@goku.codes</code></li>
+          <li>contracts + billing: <a href="/contact?topic=billing">contact form</a> (topic: billing)</li>
+          <li>legal notices: <a href="/contact?topic=legal">contact form</a> (topic: legal)</li>
+          <li>abuse: <a href="/contact?topic=abuse">contact form</a> (topic: abuse)</li>
         </ul>
       </section>
     </LegalPage>
