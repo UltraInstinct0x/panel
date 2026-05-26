@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>panel — Phase Alignment Paradigm</title>
+    <style>
+        /* Strict implementation of panel design system tokens */
+        :root {
+            --bg: #08090a;
+            --bg-2: #0f1011;
+            --bg-3: #191a1b;
+            --bg-4: #28282c;
+
+            --fg: #f7f8f8;
+            --fg-dim: #8a8f98;
+            --fg-faint: #62666d;
+
+            --accent: #67e8f9;
+            --accent-dim: rgba(103, 232, 249, 0.12);
+            --ok: #6FCF97;
+            --danger: #f87171;
+            --warn: #f59e0b;
+
+            --border: rgba(255, 255, 255, 0.08);
+            --border-subtle: rgba(255, 255, 255, 0.04);
+            --border-solid: #23252a;
+
+            --radius: 6px;
+            --radius-lg: 12px;
+
+            --sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+            --feat: "cv01", "ss03";
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--sans);
+            font-feature-settings: var(--feat);
+            letter-spacing: -0.01em;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* AppShell Centralized Header */
+        .topbar {
+            height: 56px;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--bg-2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: -0.03em;
+        }
+
+        .topbar-meta {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--fg-dim);
+            letter-spacing: 0.05em;
+        }
+
+        /* Layout Grid */
+        .workspace {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 48px 24px 96px 24px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 32px;
+        }
+
+        @media (max-width: 960px) {
+            .workspace {
+                grid-template-columns: 1fr;
+                padding: 24px 16px 56px 16px;
+            }
+        }
+
+        /* Control Panel Containers */
+        .panel-card {
+            background-color: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+        }
+
+        .panel-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+
+        .panel-title {
+            font-family: var(--sans);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--fg);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .panel-subtitle {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--fg-dim);
+        }
+
+        /* Main Viewport Container */
+        .canvas-area {
+            background-color: var(--bg-3);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 32px;
+            gap: 24px;
+        }
+
+        .canvas-grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center;
+            pointer-events: none;
+        }
+
+        /* Real-world Pill Mockup Style */
+        .pill-mockup {
+            background-color: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 18px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+        }
+
+        .pill-label-verified {
+            font-family: var(--sans);
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--fg);
+        }
+
+        .pill-label-brand {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        /* Controls */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--fg-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* Changed to single column for 5 buttons to flow cleanly */
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: var(--bg-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--fg-dim);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 12px 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn:hover {
+            border-color: rgba(255,255,255,0.15);
+            color: var(--fg);
+        }
+
+        .btn.active {
+            background-color: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Favicon Matrix Scale previews */
+        .favicon-strip {
+            display: flex;
+            align-items: flex-end;
+            gap: 24px;
+            background-color: var(--bg-3);
+            border-radius: var(--radius);
+            padding: 24px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .favicon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .favicon-item-label {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--fg-faint);
+        }
+
+        /* Raw Data Output */
+        .code-container {
+            background-color: var(--bg-3);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--fg-dim);
+            overflow-x: auto;
+            max-height: 280px;
+            white-space: pre-wrap;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .badge-accent {
+            background-color: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(103, 232, 249, 0.3);
+        }
+
+        .badge-danger {
+            background-color: rgba(248, 113, 113, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .badge-ok {
+            background-color: rgba(74, 222, 128, 0.1);
+            color: var(--ok);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .badge-warn {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warn);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .explain-box {
+            font-size: 12px;
+            color: var(--fg-dim);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- AppShell Global Header Mockup -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="2" transform="rotate(45 12 12)" stroke="var(--accent)" stroke-width="2" />
+                <circle cx="12" cy="12" r="3" fill="var(--accent)" />
+            </svg>
+            <span>panel</span>
+        </div>
+        <div class="topbar-meta">CORE ENGINE IDENTITY // THE PHASE ALIGNMENT V2</div>
+    </header>
+
+    <main class="workspace">
+        
+        <!-- Left Side: Interactive Presenter Canvas -->
+        <div style="display: flex; flex-direction: column; gap: 32px;">
+
+            <!-- 1. Active Design Canvas -->
+            <section class="panel-card">
+                <div class="panel-card-header">
+                    <h2 class="panel-title">01 / CHECKPILL INTEGRATION</h2>
+                    <span class="panel-subtitle">Dynamic Alignment Paradigm Simulation</span>
+                </div>
+                
+                <div class="canvas-area">
+                    <div class="canvas-grid-bg"></div>
+                    
+                    <!-- THE CHECKPILL WIDGET (Perfect alignment with image_db73bd) -->
+                    <div class="pill-mockup" id="checkpill-widget">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div id="mini-pill-icon-host" style="display: flex; align-items: center; justify-content: center;"></div>
+                            <span class="pill-label-verified" id="pill-text-label">verified</span>
+                        </div>
+                        <span class="pill-label-brand">panel</span>
+                    </div>
+
+                    <!-- LARGE VECTOR PREVIEW -->
+                    <div id="svg-presenter-host" style="width: 100%; display: flex; justify-content: center; margin-top: 16px;">
+                        <!-- Large vector view -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Scaled Favicon Preview Metrics -->
+            <section class="panel-card">
+                <div class="panel-card-header">
+                    <h2 class="panel-title">02 / Scalability &amp; Grid Guardrails</h2>
+                    <span class="panel-subtitle">Micro-Scale Rendering Specs</span>
+                </div>
+                
+                <p style="color: var(--fg-dim); font-size: 13px;">
+                    At miniature scales, your identity remains completely aligned with the unit-grid. These previews demonstrate how the pure Diamond and Node primitives scale flawlessly down to a 16px canvas.
+                </p>
+
+                <div class="favicon-strip">
+                    <div class="favicon-item">
+                        <div style="width: 72px; height: 72px; background: var(--bg-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center;" id="fav-host-64">
+                            <!-- Injected 64px render -->
+                        </div>
+                        <span class="favicon-item-label">64px Render</span>
+                    </div>
+
+                    <div class="favicon-item">
+                        <div style="width: 56px; height: 56px; background: var(--bg-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center;" id="fav-host-32">
+                            <!-- Injected 32px render -->
+                        </div>
+                        <span class="favicon-item-label">32px Render</span>
+                    </div>
+
+                    <div class="favicon-item">
+                        <div style="width: 40px; height: 40px; background: var(--bg-2); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center;" id="fav-host-16">
+                            <!-- Injected 16px render -->
+                        </div>
+                        <span class="favicon-item-label">16px Render</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Extract Block -->
+            <section class="panel-card">
+                <div class="panel-card-header">
+                    <h2 class="panel-title">03 / Code Delivery Block</h2>
+                    <span class="panel-subtitle">Clean Raw Vector Output</span>
+                </div>
+                
+                <div class="code-header">
+                    <span class="control-label">XML-Compliant Target Payload</span>
+                    <button class="btn" style="padding: 6px 14px;" id="copy-btn">Copy Raw Code</button>
+                </div>
+                <div class="code-container" id="code-output"></div>
+            </section>
+
+        </div>
+
+        <!-- Right Side: System State Configurator & Identity Spec Explainer -->
+        <div style="display: flex; flex-direction: column; gap: 32px;">
+            
+            <section class="panel-card">
+                <div class="panel-card-header">
+                    <h2 class="panel-title">Confidence Engine</h2>
+                    <div id="state-badge" class="badge badge-accent">HIGH TRUST</div>
+                </div>
+
+                <!-- Live State simulation engine buttons -->
+                <div class="control-group">
+                    <span class="control-label">Continuous Verification Metrics</span>
+                    <div class="btn-grid">
+                        <button class="btn" id="state-btn-initial" onclick="setTrustState('initial')">
+                            <span>Initial (Dormant)</span>
+                            <span style="color: var(--fg-dim)">0.00</span>
+                        </button>
+                        <button class="btn" id="state-btn-standard" onclick="setTrustState('standard')">
+                            <span>Standard (Calibrating)</span>
+                            <span style="color: var(--accent)">0.80</span>
+                        </button>
+                        <button class="btn active" id="state-btn-high" onclick="setTrustState('high')">
+                            <span>High (Verified)</span>
+                            <span style="color: var(--ok)">1.00</span>
+                        </button>
+                        <button class="btn" id="state-btn-low" onclick="setTrustState('low')">
+                            <span>Low (Challenge)</span>
+                            <span style="color: var(--warn)">0.55</span>
+                        </button>
+                        <button class="btn" id="state-btn-blocked" onclick="setTrustState('blocked')">
+                            <span>Blocked (Rejected)</span>
+                            <span style="color: var(--danger)">0.25</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Info Explainer -->
+                <div class="control-group" style="border-top: 1px solid var(--border); padding-top: 24px;">
+                    <span class="control-label">Architectural Mapping Specs</span>
+                    <div class="explain-box">
+                        <div><strong style="color: var(--fg);">Pure Geometry:</strong> All loose lines and "font-icon" aesthetics have been permanently removed. Everything is strictly derived from the Diamond and the Node.</div>
+                        <div><strong style="color: var(--fg);">Verification Phases:</strong>
+                            <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px;">
+                                <li><span style="color: var(--fg-dim);">Initial (Dormant)</span>: Quiet and hollow. Waiting for interaction.</li>
+                                <li><span style="color: var(--accent);">Calibrating</span>: Inner core transitions into a precise rotating diamond, indicating active system analysis.</li>
+                                <li><span style="color: var(--ok);">Verified</span>: Perfect geometric lock. A bold, solid center dot perfectly aligned inside the rigid diamond.</li>
+                                <li><span style="color: var(--warn);">Challenge</span>: The phase lock bifurcates. The center dot splits into two horizontally, showing a fork in the decision path (human arbitration).</li>
+                                <li><span style="color: var(--danger);">Blocked</span>: The outer boundary ruptures symmetrically at its vertices. The core vanishes entirely.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Operational State Orchestrator Logic -->
+    <script>
+        let activeState = 'high'; // 'initial' | 'high' | 'standard' | 'low' | 'blocked'
+
+        // Color and state specifications matching guidelines
+        const stateColorMap = {
+            initial: {
+                badgeClass: 'badge-accent',
+                badgeText: 'INITIALIZING',
+                pillText: 'panel',
+                accentColor: '#67e8f9', 
+                pillBorder: '1px solid rgba(103, 232, 249, 0.2)',
+                pillShadow: 'none',
+                baseOpacity: '0.4',
+            },
+            standard: {
+                badgeClass: 'badge-accent',
+                badgeText: 'CALIBRATING (STANDARD)',
+                pillText: 'calibrating',
+                accentColor: '#67e8f9',
+                pillBorder: '1px solid rgba(103, 232, 249, 0.6)',
+                pillShadow: '0 0 10px rgba(103, 232, 249, 0.15)',
+                baseOpacity: '1.0',
+            },
+            high: {
+                badgeClass: 'badge-ok',
+                badgeText: 'VERIFIED (HIGH TRUST)',
+                pillText: 'verified',
+                accentColor: '#4ade80', 
+                pillBorder: '1px solid rgba(74, 222, 128, 0.6)',
+                pillShadow: '0 0 10px rgba(74, 222, 128, 0.15)',
+                baseOpacity: '1.0',
+            },
+            low: {
+                badgeClass: 'badge-warn',
+                badgeText: 'CHALLENGE ACTIVE (LOW)',
+                pillText: 'action required',
+                accentColor: '#f59e0b', 
+                pillBorder: '1px solid rgba(245, 158, 11, 0.4)',
+                pillShadow: 'none',
+                baseOpacity: '0.9',
+            },
+            blocked: {
+                badgeClass: 'badge-danger',
+                badgeText: 'BLOCKED STATE',
+                pillText: 'rejected',
+                accentColor: '#28282c',
+                pillBorder: '1px solid rgba(255, 255, 255, 0.08)',
+                pillShadow: 'none',
+                baseOpacity: '0.4',
+            }
+        };
+
+        // Complete, high-performance pure inline vector code definitions
+        function renderPrimarySVG(state) {
+            const map = stateColorMap[state];
+            const acc = map.accentColor;
+            const op = map.baseOpacity;
+
+            const outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
+            let frameGeometry = "";
+            let coreContent = "";
+
+            if (state === 'blocked') {
+                // Fractured Diamond (Calculated mathematically from 60,60 radius)
+                frameGeometry = `
+                    <path d="M 54 40 L 60 34 L 66 40" stroke="${outerColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 80 54 L 86 60 L 80 66" stroke="${outerColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 66 80 L 60 86 L 54 80" stroke="${outerColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 40 66 L 34 60 L 40 54" stroke="${outerColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                `;
+                coreContent = ""; // Empty center
+            } else {
+                // Solid pristine diamond
+                frameGeometry = `<rect x="42" y="42" width="36" height="36" rx="3" transform="rotate(45 60 60)" stroke="${outerColor}" stroke-width="3" opacity="${op}" fill="none" />`;
+                
+                if (state === 'initial') {
+                    // Dormant tiny dot
+                    coreContent = `<circle cx="60" cy="60" r="2.5" fill="${acc}" opacity="${op}" />`;
+                } else if (state === 'standard') {
+                    // Active inner spinning alignment phase
+                    coreContent = `<rect x="52" y="52" width="16" height="16" rx="1.5" transform="rotate(15 60 60)" stroke="${acc}" stroke-width="2.5" fill="none" />`;
+                } else if (state === 'high') {
+                    // Absolute locked geometry (matches DB screenshot perfectly)
+                    coreContent = `<circle cx="60" cy="60" r="6" fill="${acc}" />`;
+                } else if (state === 'low') {
+                    // Bifurcated core (human fallback required)
+                    coreContent = `
+                        <circle cx="53" cy="60" r="4" fill="${acc}" />
+                        <circle cx="67" cy="60" r="4" fill="${acc}" />
+                    `;
+                }
+            }
+
+            return `
+<svg id="primary-lockup-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" width="100%" height="100%" fill="none">
+  <defs>
+    <style>
+      .brand-text { font-family: 'Inter', -apple-system, sans-serif; font-weight: 700; font-size: 64px; fill: #f7f8f8; letter-spacing: -0.05em; font-feature-settings: "cv01" on, "ss03" on; }
+      .metadata-text { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 11px; fill: #8a8f98; letter-spacing: 0.08em; }
+    </style>
+  </defs>
+  <g id="phase-alignment" transform="translate(10, 10)">
+    <!-- Base AppShell-compliant bounding container -->
+    <rect x="4" y="4" width="112" height="112" rx="12" stroke="rgba(255, 255, 255, 0.08)" stroke-width="2" fill="#0f1011"/>
+    
+    <!-- Symmetrical Identity Framework -->
+    ${frameGeometry}
+    
+    <!-- Geometric Core State -->
+    <g id="shutter-core-content" style="transition: all 0.25s ease;">
+        ${coreContent}
+    </g>
+
+    <!-- Subtle return anchor corner marker -->
+    <circle cx="104" cy="104" r="2.5" fill="${map.accentColor === '#28282c' ? '#8a8f98' : acc}" opacity="0.4"/>
+  </g>
+  <g transform="translate(156, 12)">
+    <text x="0" y="68" class="brand-text">panel</text>
+    <text x="3" y="96" class="metadata-text">INVISIBLE CAPTCHA &amp; AGENT GOVERNANCE</text>
+  </g>
+</svg>
+            `.trim();
+        }
+
+        // Generate specific, optimized favicon profiles for tiny sizes
+        function renderFavicon(state, size) {
+            const map = stateColorMap[state];
+            const acc = map.accentColor;
+            const op = map.baseOpacity;
+            const sizePx = size === '64' ? 64 : size === '32' ? 32 : 16;
+            
+            const outerColor = state === 'blocked' ? 'rgba(255,255,255,0.2)' : acc;
+            let fOuterFrame = "";
+            let fCore = "";
+
+            if (state === 'blocked') {
+                fOuterFrame = `
+                    <path d="M 14.5 11.5 L 16 10 L 17.5 11.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 20.5 14.5 L 22 16 L 20.5 17.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 17.5 20.5 L 16 22 L 14.5 20.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 11.5 17.5 L 10 16 L 11.5 14.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                `;
+                fCore = "";
+            } else {
+                fOuterFrame = `<rect x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)" stroke="${outerColor}" stroke-width="1.5" fill="none" opacity="${op}" />`;
+                
+                if (state === 'initial') {
+                    fCore = `<circle cx="16" cy="16" r="1" fill="${acc}" opacity="${op}" />`;
+                } else if (state === 'standard') {
+                    fCore = `<rect x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)" stroke="${acc}" stroke-width="1" fill="none" />`;
+                } else if (state === 'high') {
+                    fCore = `<circle cx="16" cy="16" r="2" fill="${acc}" />`;
+                } else if (state === 'low') {
+                    fCore = `
+                        <circle cx="14" cy="16" r="1" fill="${acc}" />
+                        <circle cx="18" cy="16" r="1" fill="${acc}" />
+                    `;
+                }
+            }
+
+            return `
+<svg viewBox="0 0 32 32" width="${sizePx}" height="${sizePx}" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="30" height="30" rx="5" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="#0f1011"/>
+  ${fOuterFrame}
+  <g id="mini-core-content">
+    ${fCore}
+  </g>
+</svg>
+            `.trim();
+        }
+
+        // Dedicated renderer for the actual inline Checkpill widget mockup
+        function renderPillIcon(state) {
+            const map = stateColorMap[state];
+            const acc = map.accentColor;
+            const outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
+            const op = map.baseOpacity;
+            
+            let fOuterFrame = "";
+            let fCore = "";
+
+            if (state === 'blocked') {
+                fOuterFrame = `
+                    <path d="M 14.5 11.5 L 16 10 L 17.5 11.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 20.5 14.5 L 22 16 L 20.5 17.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 17.5 20.5 L 16 22 L 14.5 20.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 11.5 17.5 L 10 16 L 11.5 14.5" stroke="${outerColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                `;
+                fCore = "";
+            } else {
+                fOuterFrame = `<rect x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)" stroke="${outerColor}" stroke-width="1.5" fill="none" opacity="${op}" />`;
+                
+                if (state === 'initial') {
+                    fCore = `<circle cx="16" cy="16" r="1" fill="${acc}" opacity="${op}" />`;
+                } else if (state === 'standard') {
+                    fCore = `<rect x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)" stroke="${acc}" stroke-width="1" fill="none" />`;
+                } else if (state === 'high') {
+                    fCore = `<circle cx="16" cy="16" r="2" fill="${acc}" />`;
+                } else if (state === 'low') {
+                    fCore = `
+                        <circle cx="14" cy="16" r="1" fill="${acc}" />
+                        <circle cx="18" cy="16" r="1" fill="${acc}" />
+                    `;
+                }
+            }
+
+            return `
+<svg viewBox="0 0 32 32" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  ${fOuterFrame}
+  ${fCore}
+</svg>
+            `.trim();
+        }
+
+        // Set simulated trust level state
+        function setTrustState(state) {
+            activeState = state;
+            
+            // Set buttons active state
+            document.querySelectorAll('.btn-grid .btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`state-btn-${state}`).classList.add('active');
+
+            // Set badge specs
+            const params = stateColorMap[state];
+            const badge = document.getElementById('state-badge');
+            badge.className = `badge ${params.badgeClass}`;
+            badge.innerText = params.badgeText;
+
+            // Apply style parameters directly to the Mockup Pill Widget
+            const pillWidget = document.getElementById('checkpill-widget');
+            pillWidget.style.border = params.pillBorder;
+            pillWidget.style.boxShadow = params.pillShadow;
+
+            const textLabel = pillWidget.querySelector('.pill-label-verified');
+            textLabel.innerText = params.pillText;
+            textLabel.style.color = state === 'blocked' ? 'var(--fg-dim)' : 'var(--fg)';
+
+            const brandLabel = pillWidget.querySelector('.pill-label-brand');
+            brandLabel.style.color = state === 'blocked' ? 'var(--fg-dim)' : 'var(--accent)';
+
+            updateUI();
+        }
+
+        // Force layout engine updates
+        function updateUI() {
+            // Render Primary SVG
+            const primaryHtml = renderPrimarySVG(activeState);
+            document.getElementById('svg-presenter-host').innerHTML = primaryHtml;
+
+            // Render scaled Favicons
+            document.getElementById('fav-host-64').innerHTML = renderFavicon(activeState, '64');
+            document.getElementById('fav-host-32').innerHTML = renderFavicon(activeState, '32');
+            document.getElementById('fav-host-16').innerHTML = renderFavicon(activeState, '16');
+
+            // Inject pill icon mockup
+            document.getElementById('mini-pill-icon-host').innerHTML = renderPillIcon(activeState);
+
+            // Render raw code outputs
+            const codeBox = document.getElementById('code-output');
+            let formatted = primaryHtml.replace(/></g, '>\n  <')
+                                        .replace(/  <\/g>/g, '</g>')
+                                        .replace(/  <\/svg>/g, '</svg>');
+            codeBox.innerText = formatted;
+        }
+
+        // Copy code helper logic
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const rawContent = document.getElementById('code-output').innerText;
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = rawContent;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Trigger feedback status changes
+            const originalText = this.innerText;
+            this.innerText = 'Copied!';
+            this.style.borderColor = 'var(--ok)';
+            this.style.color = 'var(--ok)';
+            setTimeout(() => {
+                this.innerText = originalText;
+                this.style.borderColor = 'var(--border)';
+                this.style.color = 'var(--fg-dim)';
+            }, 1500);
+        });
+
+        // Initialize parameters on load
+        window.onload = function() {
+            setTrustState('high');
+        };
+    </script>
+</body>
+</html>
