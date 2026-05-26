@@ -34,12 +34,14 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
+const DRAWER_ID = 'app-nav-mobile-drawer';
+
 export default function AppNavClient({
   pathname, isAdmin, email,
 }: { pathname: string; isAdmin: boolean; email: string | null }) {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<'product' | 'app' | 'admin' | 'me' | null>(null);
-  const wrapRef = useRef<HTMLElement>(null);
+  const wrapRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -53,11 +55,11 @@ export default function AppNavClient({
   useEffect(() => { setOpen(false); setMenu(null); }, [pathname]);
 
   return (
-    <nav className="topbar" ref={wrapRef as any}>
+    <nav className="topbar" ref={wrapRef}>
       <Link href="/" className="brand">▰ panel</Link>
 
       {/* Desktop nav */}
-      <div className="nav-groups" data-mobile-hidden>
+      <div className="nav-groups">
         <NavGroup label="product" items={PRODUCT} open={menu === 'product'}
                   onToggle={() => setMenu(menu === 'product' ? null : 'product')}
                   pathname={pathname} />
@@ -74,7 +76,14 @@ export default function AppNavClient({
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         {email ? (
           <div style={{ position: 'relative' }}>
-            <button className="nav-pill" onClick={() => setMenu(menu === 'me' ? null : 'me')}>
+            <button
+              type="button"
+              className="nav-pill"
+              aria-haspopup="menu"
+              aria-expanded={menu === 'me'}
+              aria-controls="app-nav-me-menu"
+              onClick={() => setMenu(menu === 'me' ? null : 'me')}
+            >
               <span style={{
                 display: 'inline-block', width: 6, height: 6, borderRadius: 3,
                 background: '#86efac', marginRight: 6, verticalAlign: 'middle',
@@ -83,23 +92,39 @@ export default function AppNavClient({
               <span style={{ marginLeft: 6, opacity: 0.5 }}>▾</span>
             </button>
             {menu === 'me' && (
-              <div className="nav-dropdown" style={{ right: 0, left: 'auto' }}>
+              <div id="app-nav-me-menu" role="menu" className="nav-dropdown" style={{ right: 0, left: 'auto' }}>
                 <div style={{ padding: '8px 12px', fontSize: 11, color: 'var(--fg-faint)', borderBottom: '1px solid var(--border-subtle)' }}>
                   {email}
                 </div>
-                <button onClick={() => signOut({ callbackUrl: '/' })} className="nav-dropdown-item">sign out</button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="nav-dropdown-item"
+                >
+                  sign out
+                </button>
               </div>
             )}
           </div>
         ) : (
           <Link href="/login-admin" className="nav-pill">sign in</Link>
         )}
-        <button className="nav-hamburger" onClick={() => setOpen(!open)} aria-label="menu">{open ? '×' : '☰'}</button>
+        <button
+          type="button"
+          className="nav-hamburger"
+          aria-label={open ? 'close menu' : 'open menu'}
+          aria-expanded={open}
+          aria-controls={DRAWER_ID}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? '×' : '☰'}
+        </button>
       </div>
 
       {/* Mobile drawer */}
       {open && (
-        <div className="nav-mobile-drawer">
+        <div id={DRAWER_ID} className="nav-mobile-drawer">
           <MobileSection label="product" items={PRODUCT} pathname={pathname} />
           <MobileSection label="app" items={APP} pathname={pathname} />
           {isAdmin && <MobileSection label="admin" items={ADMIN} pathname={pathname} />}
@@ -113,10 +138,15 @@ function NavGroup({
   label, items, open, onToggle, pathname, accent,
 }: { label: string; items: NavItem[]; open: boolean; onToggle: () => void; pathname: string; accent?: boolean }) {
   const active = items.some(i => isActive(pathname, i.href));
+  const menuId = `app-nav-group-${label}`;
   return (
     <div style={{ position: 'relative' }}>
       <button
+        type="button"
         className="nav-group-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
         data-active={active ? 'true' : undefined}
         data-accent={accent ? 'true' : undefined}
         onClick={onToggle}
@@ -124,9 +154,9 @@ function NavGroup({
         {label}<span style={{ marginLeft: 4, opacity: 0.5, fontSize: 10 }}>▾</span>
       </button>
       {open && (
-        <div className="nav-dropdown">
+        <div id={menuId} role="menu" className="nav-dropdown">
           {items.map(it => (
-            <Link key={it.href} href={it.href} className="nav-dropdown-item"
+            <Link key={it.href} href={it.href} role="menuitem" className="nav-dropdown-item"
                   data-active={isActive(pathname, it.href) ? 'true' : undefined}>
               {it.label}
             </Link>
