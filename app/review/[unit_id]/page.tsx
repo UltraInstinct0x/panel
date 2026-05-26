@@ -2,8 +2,6 @@
 // Anyone can land here from a PR comment, blog post, or rater notification.
 // Live tally polls /api/v1/skill-review/[unit_id], embeds the same captcha pill
 // raters use to cast their vote.
-import Nav from '../../_components/Nav';
-
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -25,8 +23,7 @@ export default async function ReviewPage({ params }: { params: { unit_id: string
   if (!verdict || verdict.error) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#eaeaea', fontFamily: 'ui-monospace, monospace' }}>
-        <Nav />
-        <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 24px' }}>
+<main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 24px' }}>
           <h1 style={{ fontSize: 28, marginBottom: 16 }}>review not found</h1>
           <p style={{ color: '#888' }}>
             no skill-review unit at <code style={{ color: '#eaeaea' }}>{params.unit_id}</code>.
@@ -56,8 +53,7 @@ export default async function ReviewPage({ params }: { params: { unit_id: string
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#eaeaea', fontFamily: 'ui-monospace, monospace' }}>
-      <Nav />
-      <main style={{ maxWidth: 880, margin: '0 auto', padding: '40px 24px 80px' }}>
+<main style={{ maxWidth: 880, margin: '0 auto', padding: '40px 24px 80px' }}>
         <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>panel skill review</div>
         <h1 style={{ fontSize: 28, margin: '0 0 8px 0' }}>
           <code style={{ color: '#eaeaea' }}>{verdict.source_agent || 'skill diff'}</code>

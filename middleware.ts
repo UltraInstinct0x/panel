@@ -81,7 +81,10 @@ export function middleware(req: NextRequest) {
     return res;
   }
 
-  const res = NextResponse.next();
+  // expose pathname to server components via request headers (headers() reads these)
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set('x-pathname', pathname);
+  const res = NextResponse.next({ request: { headers: reqHeaders } });
   applySecurityHeaders(res, isEmbed ? 'open' : 'deny');
   if (isApi) applyCORS(req, res);
   return res;

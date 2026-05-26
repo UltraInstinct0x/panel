@@ -250,9 +250,76 @@ nav.topbar a:hover { color: var(--fg); }
 nav.topbar .brand {
   font-weight: 590;
   color: var(--fg);
-  margin-right: auto;
   font-size: 14px;
   letter-spacing: -0.01em;
+}
+
+/* nav groups + dropdowns */
+nav.topbar .nav-groups { display: flex; gap: 4px; align-items: center; }
+nav.topbar .nav-group-trigger {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--fg-dim); font: inherit; font-size: 13px; font-weight: 510;
+  padding: 6px 10px; border-radius: 6px;
+  font-family: var(--sans);
+}
+nav.topbar .nav-group-trigger:hover { color: var(--fg); background: rgba(255,255,255,0.04); }
+nav.topbar .nav-group-trigger[data-active="true"] { color: var(--fg); }
+nav.topbar .nav-group-trigger[data-accent="true"] { color: #c4b5fd; }
+nav.topbar .nav-group-trigger[data-accent="true"]:hover { background: rgba(196,181,253,0.08); }
+
+nav.topbar .nav-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 180px;
+  background: rgba(15,15,20,0.98);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  z-index: 60;
+}
+nav.topbar .nav-dropdown-item {
+  display: block; padding: 8px 10px;
+  font-size: 13px; color: var(--fg-dim);
+  background: transparent; border: none; text-align: left; cursor: pointer;
+  border-radius: 4px;
+  font-family: var(--sans);
+}
+nav.topbar .nav-dropdown-item:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
+nav.topbar .nav-dropdown-item[data-active="true"] { color: var(--fg); background: rgba(255,255,255,0.04); }
+
+nav.topbar .nav-pill {
+  display: inline-flex; align-items: center;
+  padding: 5px 12px;
+  font-size: 12px; font-weight: 510;
+  color: var(--fg-dim);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+nav.topbar .nav-pill:hover { color: var(--fg); border-color: rgba(255,255,255,0.18); }
+
+nav.topbar .nav-hamburger {
+  display: none;
+  background: transparent; border: 1px solid var(--border-subtle);
+  color: var(--fg-dim); width: 32px; height: 32px; border-radius: 6px;
+  font-size: 16px; cursor: pointer;
+}
+
+nav.topbar .nav-mobile-drawer {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: rgba(8,9,10,0.98);
+  border-top: 1px solid var(--border-subtle);
+  display: none;
+}
+
+@media (max-width: 820px) {
+  nav.topbar .nav-groups { display: none; }
+  nav.topbar .nav-hamburger { display: inline-block; }
+  nav.topbar .nav-mobile-drawer { display: block; }
+  nav.topbar { padding: 12px 16px; }
 }
 
 /* ---------- landing only ---------- */

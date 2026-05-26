@@ -1,8 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Nav from './_components/Nav';
-
 const SDK_SNIPPET = `import { createClient } from 'panel-sdk';
 
 const panel = createClient({ siteKey: process.env.PANEL_KEY!, secret: process.env.PANEL_SECRET! });
@@ -17,9 +15,7 @@ export default function Home() {
 
   return (
     <>
-      <Nav />
-
-      {/* HERO */}
+{/* HERO */}
       <section className="hero">
         <div className="container">
           <span className="hero-eyebrow">live now · shipping weekly</span>

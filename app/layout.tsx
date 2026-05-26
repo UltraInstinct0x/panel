@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import AppShell from './_components/AppShell';
+import RootSessionProvider from './_components/RootSessionProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,7 +32,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      <body style={{ fontFamily: `var(--font-inter), 'Inter', system-ui, sans-serif` }}>{children}</body>
+      <body style={{ fontFamily: `var(--font-inter), 'Inter', system-ui, sans-serif` }}>
+        <RootSessionProvider>
+          <AppShell>{children}</AppShell>
+        </RootSessionProvider>
+      </body>
     </html>
   );
 }

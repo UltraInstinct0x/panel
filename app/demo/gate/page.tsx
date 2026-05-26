@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Nav from '../../_components/Nav';
 import Widget from '../../_components/Widget';
 
 export default function GatePage() {
@@ -12,8 +11,7 @@ export default function GatePage() {
   if (submitted) {
     return (
       <>
-        <Nav />
-        <div className="container-narrow" style={{ marginTop: 80, textAlign: 'center' }}>
+<div className="container-narrow" style={{ marginTop: 80, textAlign: 'center' }}>
           <h1>account created.</h1>
           <p className="muted">(not really — this is a demo)</p>
           <p className="muted">but the panel judgment you made was real. it&apos;s in the dataset.</p>
@@ -25,8 +23,7 @@ export default function GatePage() {
 
   return (
     <>
-      <Nav />
-      <div className="container-narrow">
+<div className="container-narrow">
         <h1>sign up for $FAKE_PRODUCT</h1>
         <p className="muted">a fake operator. their signup form embeds panel as a captcha. you&apos;ll judge one piece of agent work below to prove you&apos;re human.</p>
 
