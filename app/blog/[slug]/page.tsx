@@ -15,6 +15,8 @@ export function generateStaticParams(): Params[] {
 export function generateMetadata({ params }: { params: Params }): Metadata {
   const post = getPost(params.slug);
   if (!post) return {};
+  const base = process.env.PANEL_PUBLIC_URL || 'https://panel.goku.codes';
+  const imageUrl = post.image ? new URL(post.image, base).toString() : undefined;
   return {
     title: `${post.title} — panel blog`,
     description: post.description,
@@ -27,12 +29,14 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
       modifiedTime: post.updated || post.date,
       authors: [post.author],
       tags: post.tags,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.description,
       creator: '@0xultrainstinct',
+      images: imageUrl ? [imageUrl] : undefined,
     },
     alternates: { canonical: postUrl(params.slug) },
   };
@@ -41,6 +45,8 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
 export default function BlogPost({ params }: { params: Params }) {
   const post = getPost(params.slug);
   if (!post) notFound();
+  const base = process.env.PANEL_PUBLIC_URL || 'https://panel.goku.codes';
+  const imageUrl = post.image ? new URL(post.image, base).toString() : undefined;
 
   const safeJsonLd = (obj: unknown) =>
     JSON.stringify(obj)
@@ -69,7 +75,24 @@ export default function BlogPost({ params }: { params: Params }) {
     },
     mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl(post.slug) },
     keywords: post.tags?.join(', '),
+    image: imageUrl ? [imageUrl] : undefined,
   };
+
+  const faqLd =
+    post.faq.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: post.faq.map((entry) => ({
+            '@type': 'Question',
+            name: entry.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: entry.answer,
+            },
+          })),
+        }
+      : null;
 
   return (
     <main className="container blog-post">
@@ -126,6 +149,13 @@ export default function BlogPost({ params }: { params: Params }) {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(articleLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }}
+        />
+      )}
     </main>
   );
 }

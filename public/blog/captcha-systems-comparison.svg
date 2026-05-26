@@ -1,0 +1,15 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="captcha systems comparison">
+  <rect width="1200" height="630" fill="#0b1020"/>
+  <text x="60" y="90" fill="#93c5fd" font-family="JetBrains Mono, monospace" font-size="34">reCAPTCHA • Turnstile • hCaptcha • panel</text>
+  <g font-family="JetBrains Mono, monospace" font-size="18" fill="#e5e7eb">
+    <rect x="70" y="140" width="260" height="360" rx="10" fill="#111827" stroke="#374151"/>
+    <text x="110" y="180">reCAPTCHA v3</text><text x="95" y="220" fill="#9ca3af">signal: risk score</text><text x="95" y="255" fill="#9ca3af">output: float</text><text x="95" y="290" fill="#9ca3af">agent-aware: no</text>
+    <rect x="350" y="140" width="260" height="360" rx="10" fill="#111827" stroke="#374151"/>
+    <text x="415" y="180">Turnstile</text><text x="375" y="220" fill="#9ca3af">signal: token validity</text><text x="375" y="255" fill="#9ca3af">output: pass/fail</text><text x="375" y="290" fill="#9ca3af">agent-aware: no</text>
+    <rect x="630" y="140" width="260" height="360" rx="10" fill="#111827" stroke="#374151"/>
+    <text x="700" y="180">hCaptcha</text><text x="655" y="220" fill="#9ca3af">signal: challenge solve</text><text x="655" y="255" fill="#9ca3af">output: pass/fail</text><text x="655" y="290" fill="#9ca3af">agent-aware: no</text>
+    <rect x="910" y="140" width="220" height="360" rx="10" fill="#0f172a" stroke="#22d3ee"/>
+    <text x="975" y="180" fill="#22d3ee">panel</text><text x="930" y="220" fill="#cbd5e1">signal: population mix</text><text x="930" y="255" fill="#cbd5e1">output: structured JSON</text><text x="930" y="290" fill="#cbd5e1">agent-aware: yes</text>
+  </g>
+  <text x="60" y="570" fill="#9ca3af" font-family="JetBrains Mono, monospace" font-size="20">difference is output shape: bits vs actionable routing signal.</text>
+</svg>

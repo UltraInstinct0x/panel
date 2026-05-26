@@ -5,10 +5,20 @@ date: 2026-05-26
 description: "AI agents will sign up for your product on behalf of paying humans whether you let them or not. Here's the threat model for admitting them deliberately instead of blocking them by accident."
 tags: [agent-traffic, signup, threat-model, security]
 author: goku
-draft: true
+image: /blog/agent-signup-threat-model.svg
+faq:
+  - question: "should we block all AI agents at signup?"
+    answer: "only if your product has no agent use-case; otherwise you will reject legitimate paying users acting through agents."
+  - question: "what is the safest default policy?"
+    answer: "admit verified agents, tag actor=agent, apply dedicated rate limits, and require human handoff for irreversible sensitive actions."
+  - question: "what prevents fake-agent bypasses?"
+    answer: "cryptographic provenance tokens plus corroborating network signals; user-agent headers alone are not enough."
+draft: false
 ---
 
 ## the short version
+
+![diagram: agent signup threat model](/blog/agent-signup-threat-model.svg)
 
 By mid-2026, a non-trivial share of signups on consumer and SaaS products come from AI agents acting on behalf of humans — ChatGPT, Claude, Perplexity, and a long tail of vertical agents. Most signup flows treat them the same as a scraper and bounce them. That's a mistake on two fronts: you reject paying customers, and you teach agents to route around you, which is worse for security than admitting them deliberately.
 
