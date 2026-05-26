@@ -36,12 +36,12 @@ function validate(p: any): ValidateResult {
 }
 
 export async function GET(req: NextRequest, ctx: { params: { key: string } }) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   return NextResponse.json({ ok: true, policy: loadPolicy(ctx.params.key), defaults: DEFAULT_POLICY });
 }
 
 export async function PUT(req: NextRequest, ctx: { params: { key: string } }) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const key = ctx.params.key;
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }

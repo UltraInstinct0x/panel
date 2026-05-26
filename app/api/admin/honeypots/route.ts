@@ -6,7 +6,7 @@ import type { UnitType } from '@/lib/store';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const type = req.nextUrl.searchParams.get('type') as UnitType | null;
   const status = (req.nextUrl.searchParams.get('status') as 'active' | 'retired' | 'all' | null) ?? 'all';
   const rows = listHoneypots({ type: type ?? undefined, status });
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
   const { unit_type, payload, decoy_answer, true_answer, expert_notes } = body || {};
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const id = req.nextUrl.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'missing_id' }, { status: 400 });
   retireHoneypot(id);

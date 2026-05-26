@@ -11,8 +11,8 @@ import { Shell, Card, Chip, Unauthorized, COLORS, FONT } from './_ui';
 
 export const dynamic = 'force-dynamic';
 
-export default function OperatorsPage() {
-  const a = requireAdminPage();
+export default async function OperatorsPage() {
+  const a = await requireAdminPage();
   if (!a.ok) return <Unauthorized />;
   const rows = listAllSiteKeys();
   return (

@@ -15,8 +15,8 @@ function maxTierFromPolicy(p: any): 'C1' | 'C2' | 'C3' {
   return 'C3';
 }
 
-export default function OperatorDetailPage({ params }: { params: { key: string } }) {
-  const a = requireAdminPage();
+export default async function OperatorDetailPage({ params }: { params: { key: string } }) {
+  const a = await requireAdminPage();
   if (!a.ok) return <Unauthorized />;
   const key = decodeURIComponent(params.key);
   const row = getSiteKey(key);

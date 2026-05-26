@@ -34,8 +34,8 @@ function classify(yesN: number, noN: number, n: number) {
   return { status: 'no_consensus', consensus: Math.max(yesShare, noShare) };
 }
 
-export default function ReviewsPage() {
-  const auth = requireAdminPage();
+export default async function ReviewsPage() {
+  const auth = await requireAdminPage();
   if (!auth.ok) return <Unauthorized />;
 
   // fetch all skill_diff* units with judgment tallies in one pass.

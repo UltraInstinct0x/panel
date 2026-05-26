@@ -8,14 +8,14 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const status = (req.nextUrl.searchParams.get('status') || 'pending') as any;
   return NextResponse.json({ ok: true, applications: listApplications(status) });
 }
 
 // POST /api/admin/onboard/applications  { application_id, action: 'approve'|'reject', reason?, label_override? }
 export async function POST(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
   const id = String(body?.application_id || '');

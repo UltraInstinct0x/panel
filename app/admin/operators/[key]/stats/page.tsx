@@ -13,8 +13,8 @@ import { Shell, Card, Chip, Unauthorized, COLORS, FONT } from '../../_ui';
 
 export const dynamic = 'force-dynamic';
 
-export default function OperatorStatsPage({ params }: { params: { key: string } }) {
-  const a = requireAdminPage();
+export default async function OperatorStatsPage({ params }: { params: { key: string } }) {
+  const a = await requireAdminPage();
   if (!a.ok) return <Unauthorized />;
   const key = decodeURIComponent(params.key);
   const row = getSiteKey(key);
