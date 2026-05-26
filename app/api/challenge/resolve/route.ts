@@ -12,6 +12,7 @@ import { getSession, bumpAttempt, deleteSession } from '@/lib/tier-session';
 import { deriveFingerprint } from '@/lib/behavioral-fingerprint';
 import { getUnit } from '@/lib/store';
 import { recordChallengeResolved } from '@/lib/operator-stats';
+import { buildStructuredVerdict, ingestEdgeModelPayload } from '@/lib/edge-model-contract';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
   const updated = bumpAttempt(jti)!;
   const fp = deriveFingerprint(body?.fingerprint);
   const answers = Array.isArray(body?.answers) ? body.answers : [];
+  const edge = ingestEdgeModelPayload(body?.edge_model);
 
   // tier-specific resolution
   let pass = false;
@@ -67,8 +69,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (!pass) {
+    const verdict = buildStructuredVerdict({ pass, trust: fp.trust, resolveReason, edge });
     if (updated.attempts >= updated.max_attempts) {
-      try { recordChallengeResolved(jti, 'hard_fail'); } catch {}
+      try {
+        recordChallengeResolved(jti, 'hard_fail', {
+          verdict: verdict.verdict,
+          confidence: verdict.confidence,
+          trust_tier: verdict.trust_tier,
+          reason_codes: verdict.reason_codes,
+          edge_runtime: edge.runtime,
+          edge_model_version: edge.model_version,
+          edge_feature_version: edge.feature_version,
+          edge_fallback: edge.fallback,
+          edge_model_error: edge.model_error,
+        });
+      } catch {}
       deleteSession(jti);
       return NextResponse.json({
         success: false,
@@ -76,10 +91,23 @@ export async function POST(req: NextRequest) {
         hard_fail: true,
         attempts: updated.attempts,
         reason: resolveReason,
+        verdict,
         message: 'human verification unavailable, contact site operator',
       }, { status: 403 });
     }
-    try { recordChallengeResolved(jti, 'retry'); } catch {}
+    try {
+      recordChallengeResolved(jti, 'retry', {
+        verdict: verdict.verdict,
+        confidence: verdict.confidence,
+        trust_tier: verdict.trust_tier,
+        reason_codes: verdict.reason_codes,
+        edge_runtime: edge.runtime,
+        edge_model_version: edge.model_version,
+        edge_feature_version: edge.feature_version,
+        edge_fallback: edge.fallback,
+        edge_model_error: edge.model_error,
+      });
+    } catch {}
     // D19: same unit set, same token still valid.
     const units = sess.unit_ids.map(id => getUnit(id)).filter(Boolean);
     return NextResponse.json({
@@ -89,6 +117,7 @@ export async function POST(req: NextRequest) {
       max_attempts: updated.max_attempts,
       units: sess.tier === 'C0' ? [] : units,
       reason: resolveReason,
+      verdict,
     });
   }
 
@@ -104,14 +133,43 @@ export async function POST(req: NextRequest) {
     judgment_summary: { agreed_with_pool: null, latency_ms: fp.dwell_ms, honeypot_failed: false },
     scrubber_attestation: { service: 'na', rules_version: 'na', redactions: [], passed: true },
   });
-  try { recordChallengeResolved(jti, 'pass'); } catch {}
+  const verdict = buildStructuredVerdict({ pass, trust: fp.trust, edge });
+  try {
+    recordChallengeResolved(jti, 'pass', {
+      verdict: verdict.verdict,
+      confidence: verdict.confidence,
+      trust_tier: verdict.trust_tier,
+      reason_codes: verdict.reason_codes,
+      edge_runtime: edge.runtime,
+      edge_model_version: edge.model_version,
+      edge_feature_version: edge.feature_version,
+      edge_fallback: edge.fallback,
+      edge_model_error: edge.model_error,
+    });
+  } catch {}
   deleteSession(jti);
+  try {
+    console.info(JSON.stringify({
+      evt: 'challenge_resolve_verdict',
+      jti,
+      verdict: verdict.verdict,
+      confidence: round(verdict.confidence, 3),
+      trust_tier: verdict.trust_tier,
+      runtime: edge.runtime,
+      model_version: edge.model_version,
+      feature_version: edge.feature_version,
+      reason_codes: verdict.reason_codes,
+      fallback: edge.fallback,
+      model_error: edge.model_error,
+    }));
+  } catch {}
   return NextResponse.json({
     success: true,
     token: verifyToken,
     trust: round(fp.trust, 3),
     tier_used: sess.tier,
     attempts: updated.attempts,
+    verdict,
   });
 }
 

@@ -43,6 +43,15 @@
     return 'https://panel.goku.codes';
   }
   var ORIGIN = selfOrigin();
+  var EDGE_MODEL_DEFAULT = {
+    local_score: null,
+    local_class_probs: {},
+    reason_codes: ['edge_model_scaffold'],
+    model_version: 'edge-risk-v1-scaffold',
+    feature_version: 'v1',
+    runtime: 'rules_only',
+    model_error: false,
+  };
 
   // ---------- styles ----------
   // dark linear-app palette: #08080b bg, #67e8f9 cyan, inter+jb-mono.
@@ -285,6 +294,7 @@
         body: JSON.stringify({
           challenge_token: challengeToken,
           fingerprint: collector.snapshot(),
+          edge_model: EDGE_MODEL_DEFAULT,
         }),
       }).then(function (r) { return r.json(); });
     }
