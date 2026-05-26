@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { listPosts } from '@/lib/blog';
+import { listPosts, safeDate } from '@/lib/blog';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = process.env.PANEL_PUBLIC_URL || 'https://panel.goku.codes';
@@ -14,7 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
   const posts: MetadataRoute.Sitemap = listPosts(false).map((p) => ({
     url: `${base}/blog/${p.slug}`,
-    lastModified: new Date(p.updated || p.date || now),
+    lastModified: safeDate(p.updated || p.date, now),
     changeFrequency: 'monthly',
     priority: 0.7,
   }));

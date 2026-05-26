@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { listPosts } from '@/lib/blog';
 
 export const dynamic = 'force-static';
-export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'panel blog — captcha, agent traffic, and signal',

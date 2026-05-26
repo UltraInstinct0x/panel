@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { getPost, listPostSlugs, postUrl } from '@/lib/blog';
 
 export const dynamic = 'force-static';
-export const revalidate = 3600;
 
 type Params = { slug: string };
 
@@ -42,6 +41,13 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
 export default function BlogPost({ params }: { params: Params }) {
   const post = getPost(params.slug);
   if (!post) notFound();
+
+  const safeJsonLd = (obj: unknown) =>
+    JSON.stringify(obj)
+      .replace(/</g, '\\u003c')
+      .replace(/-->/g, '--\\u003e')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
 
   const articleLd = {
     '@context': 'https://schema.org',
@@ -118,7 +124,7 @@ export default function BlogPost({ params }: { params: Params }) {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(articleLd) }}
       />
     </main>
   );

@@ -2,7 +2,6 @@
 import { listPosts, postUrl } from '@/lib/blog';
 
 export const dynamic = 'force-static';
-export const revalidate = 3600;
 
 function escape(s: string) {
   return s
