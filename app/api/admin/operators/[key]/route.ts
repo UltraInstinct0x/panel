@@ -8,14 +8,14 @@ import { logAudit } from '@/lib/operator-audit';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, ctx: { params: { key: string } }) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const row = getSiteKey(ctx.params.key);
   if (!row) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   return NextResponse.json({ ok: true, site_key: row });
 }
 
 export async function PUT(req: NextRequest, ctx: { params: { key: string } }) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const key = ctx.params.key;
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }

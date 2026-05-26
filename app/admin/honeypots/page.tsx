@@ -6,8 +6,8 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default function HoneypotsAdminPage() {
-  const a = requireAdminPage();
+export default async function HoneypotsAdminPage() {
+  const a = await requireAdminPage();
   if (!a.ok) return <Unauthorized />;
   const rows = listHoneypots();
   const active = activeCountsByType();

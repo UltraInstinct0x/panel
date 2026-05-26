@@ -11,7 +11,7 @@ import { DEFAULT_POLICY } from '@/lib/tier-ladder';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
   const rows = listAllSiteKeys();
   const out = rows.map(r => {
     let policy: any = { ...DEFAULT_POLICY };

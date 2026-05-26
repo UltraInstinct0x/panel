@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 const ALLOWED_STATUS = new Set(['new', 'triaged', 'resolved', 'spam']);
 
 export async function GET(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
 
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get('status') || 'new';
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const a = requireAdmin(req); if (!a.ok) return a.res;
+  const a = await requireAdmin(req); if (!a.ok) return a.res;
 
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
