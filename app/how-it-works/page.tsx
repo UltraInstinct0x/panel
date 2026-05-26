@@ -82,7 +82,7 @@ export default function HowItWorks() {
             surface that produced the data. no broker in between.
           </p>
           <p>
-            paid-train is private alpha. <a href="mailto:g_guney@icloud.com?subject=panel%20paid-train%20access">request access</a>.
+            paid-train is private alpha. <a href="/contact?topic=paid-train">request access</a>.
           </p>
 
           <hr />

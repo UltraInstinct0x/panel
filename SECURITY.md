@@ -11,7 +11,7 @@ panel is pre-1.0 — only `main` is supported. there are no point releases yet.
 
 ## Reporting a vulnerability
 
-email **security@goku.codes** with:
+use the **[/contact](https://panel.goku.codes/contact?topic=security)** form (topic: `security`) with:
 
 - a short description of the issue
 - reproduction steps (or a PoC)
@@ -19,7 +19,7 @@ email **security@goku.codes** with:
 
 we'll acknowledge within 72h. don't open a public github issue for security stuff.
 
-PGP is not required. if you want it, ask in the first email and we'll exchange keys before sending anything sensitive.
+PGP is not required. if you want it, mention so in the contact form and we'll exchange keys before sending anything sensitive.
 
 ## Severity rubric (informal)
 

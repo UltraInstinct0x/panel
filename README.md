@@ -257,6 +257,6 @@ MIT — see [LICENSE](LICENSE).
 
 ## security
 
-found a bug? see [SECURITY.md](SECURITY.md). short version: email security@goku.codes, don't open a public issue.
+found a bug? see [SECURITY.md](SECURITY.md). short version: use the [/contact form with topic=security](https://panel.goku.codes/contact?topic=security), don't open a public issue.
 
 operator runbook: [docs/ops.md](docs/ops.md).

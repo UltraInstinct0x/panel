@@ -2,7 +2,7 @@
 // not hash-chained (yet). lives in the same sqlite as everything else.
 import { db } from './db';
 
-export type ActorKind = 'rater' | 'operator' | 'system';
+export type ActorKind = 'rater' | 'operator' | 'system' | 'contact';
 
 export interface AuditEntry {
   id: string;

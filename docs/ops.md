@@ -85,7 +85,7 @@ status page lives at `https://status.goku.codes`. add a monitor:
 4. notification: tie to whatever channel `goku.codes` already uses.
 5. save → it should go green within 60s.
 
-**manual fallback** (if Kuma isn't running): `*/2 * * * * curl -fsS https://panel.goku.codes/api/health > /dev/null || echo "panel down at $(date)" | mail -s "panel alert" admin@goku.codes`
+**manual fallback** (if Kuma isn't running): `*/2 * * * * curl -fsS https://panel.goku.codes/api/health > /dev/null || /opt/panel/scripts/alert.sh "panel down at $(date)"` (alerts via your configured channel — slack/discord webhook, pagerduty, etc; don't rely on local `mail(1)` from the box).
 
 ## attestation tokens
 

@@ -15,7 +15,7 @@ import { insertHoneypot } from '../lib/honeypot';
 import { db } from '../lib/db';
 import type { UnitType } from '../lib/store';
 
-const UA = 'PanelArchiveSeeder/1.0 (https://panel.goku.codes; admin@panel.goku.codes)';
+const UA = 'PanelArchiveSeeder/1.0 (+https://panel.goku.codes/contact?topic=abuse)';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 const CATEGORY = 'Category:Featured_pictures_on_Wikimedia_Commons';
 

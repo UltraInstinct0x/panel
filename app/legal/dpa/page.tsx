@@ -10,7 +10,7 @@ export default function DPAPage() {
     <LegalPage title="data processing addendum" version="v0" lastUpdated="2026-05-20">
       <section>
         <p>this addendum (&quot;DPA&quot;) forms part of the <a href="/legal/terms">terms of service</a> between the operator (&quot;controller&quot;) and panel (&quot;processor&quot;, UltraInstinct0x). it governs processing of personal data submitted by the controller to panel and applies whenever the controller is subject to GDPR, UK-GDPR, or KVKK.</p>
-        <p style={sx.muted}>countersigned PDFs available on request for paid operators: <code>privacy@goku.codes</code>. v0 wording is in effect for v0 contracts; future updates trigger 30-day notice.</p>
+        <p style={sx.muted}>countersigned PDFs available on request for paid operators: use the <a href="/contact?topic=legal">contact form</a> (topic: legal). v0 wording is in effect for v0 contracts; future updates trigger 30-day notice.</p>
       </section>
 
       <section>
@@ -35,7 +35,7 @@ export default function DPAPage() {
           <li>provide lawful basis for any personal data submitted in unit content.</li>
           <li>obtain consents required from end users.</li>
           <li>minimize personal data: do not embed PII, PHI, or secrets in unit content unless contracted under a signed BAA and using scrubber-proxy.</li>
-          <li>respond to data-subject requests received by the controller; route DSARs that originate via panel to <code>privacy@goku.codes</code>.</li>
+          <li>respond to data-subject requests received by the controller; route DSARs that originate via panel to the <a href="/contact?topic=privacy">contact form</a> (topic: privacy).</li>
         </ul>
       </section>
 
@@ -71,7 +71,7 @@ export default function DPAPage() {
           <li><code>GET /api/me/export?rater_id=&lt;id&gt;</code> — export</li>
           <li><code>POST /api/me/delete?rater_id=&lt;id&gt;</code> — erasure</li>
         </ul>
-        <p>controllers may also submit batch DSAR requests to <code>privacy@goku.codes</code>; response within 30 days.</p>
+        <p>controllers may also submit batch DSAR requests via the <a href="/contact?topic=privacy">contact form</a> (topic: privacy); response within 30 days.</p>
       </section>
 
       <section>
