@@ -245,111 +245,102 @@
     }
   };
 
-  // Render 20px pill icon (32x32 viewBox, 20px displayed size)
-  function renderPillIconSVG(state) {
-    var map = stateColorMap[state];
+  // shared five-state geometry. scales: 'small' = 32x32 viewBox (pill / favicon),
+  // 'large' = 120x120 inner box on the 560x140 lockup. each scale defines its own
+  // coordinate constants; buildStateGeometry composes them via shared branching.
+  // returns { outerFrame, core, outerColor, accentColor, baseOpacity }.
+  var GEOMETRY_SCALES = {
+    small: {
+      blockedPaths: [
+        'M 14.5 11.5 L 16 10 L 17.5 11.5',
+        'M 20.5 14.5 L 22 16 L 20.5 17.5',
+        'M 17.5 20.5 L 16 22 L 14.5 20.5',
+        'M 11.5 17.5 L 10 16 L 11.5 14.5',
+      ],
+      blockedStrokeWidth: '1.5',
+      diamondAttrs: 'x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)"',
+      diamondStrokeWidth: '1.5',
+      initialDot: 'cx="16" cy="16" r="1"',
+      standardCoreAttrs: 'x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)"',
+      standardCoreStrokeWidth: '1',
+      highDot: 'cx="16" cy="16" r="2"',
+      lowDots: ['cx="14" cy="16" r="1"', 'cx="18" cy="16" r="1"'],
+    },
+    large: {
+      blockedPaths: [
+        'M 54 40 L 60 34 L 66 40',
+        'M 80 54 L 86 60 L 80 66',
+        'M 66 80 L 60 86 L 54 80',
+        'M 40 66 L 34 60 L 40 54',
+      ],
+      blockedStrokeWidth: '3',
+      diamondAttrs: 'x="42" y="42" width="36" height="36" rx="3" transform="rotate(45 60 60)"',
+      diamondStrokeWidth: '3',
+      initialDot: 'cx="60" cy="60" r="2.5"',
+      standardCoreAttrs: 'x="52" y="52" width="16" height="16" rx="1.5" transform="rotate(15 60 60)"',
+      standardCoreStrokeWidth: '2.5',
+      highDot: 'cx="60" cy="60" r="6"',
+      lowDots: ['cx="53" cy="60" r="4"', 'cx="67" cy="60" r="4"'],
+    },
+  };
+
+  function buildStateGeometry(state, scale) {
+    var map = stateColorMap[state] || stateColorMap.initial;
+    var s = GEOMETRY_SCALES[scale] || GEOMETRY_SCALES.small;
     var acc = map.accentColor;
-    var outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
     var op = map.baseOpacity;
-    var fOuterFrame = '';
-    var fCore = '';
+    var outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
+    var outerFrame = '';
+    var core = '';
 
     if (state === 'blocked') {
-      fOuterFrame = '<path d="M 14.5 11.5 L 16 10 L 17.5 11.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 20.5 14.5 L 22 16 L 20.5 17.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 17.5 20.5 L 16 22 L 14.5 20.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 11.5 17.5 L 10 16 L 11.5 14.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />';
-      fCore = '';
+      for (var i = 0; i < s.blockedPaths.length; i++) {
+        outerFrame += '<path d="' + s.blockedPaths[i] + '" stroke="' + outerColor
+          + '" stroke-width="' + s.blockedStrokeWidth + '" stroke-linecap="round" stroke-linejoin="round" />';
+      }
     } else {
-      fOuterFrame = '<rect x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)" stroke="' + outerColor + '" stroke-width="1.5" fill="none" opacity="' + op + '" />';
+      outerFrame = '<rect ' + s.diamondAttrs + ' stroke="' + outerColor
+        + '" stroke-width="' + s.diamondStrokeWidth + '" fill="none" opacity="' + op + '" />';
       if (state === 'initial') {
-        fCore = '<circle cx="16" cy="16" r="1" fill="' + acc + '" opacity="' + op + '" />';
+        core = '<circle ' + s.initialDot + ' fill="' + acc + '" opacity="' + op + '" />';
       } else if (state === 'standard') {
-        fCore = '<rect x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)" stroke="' + acc + '" stroke-width="1" fill="none" />';
+        core = '<rect ' + s.standardCoreAttrs + ' stroke="' + acc
+          + '" stroke-width="' + s.standardCoreStrokeWidth + '" fill="none" />';
       } else if (state === 'high') {
-        fCore = '<circle cx="16" cy="16" r="2" fill="' + acc + '" />';
+        core = '<circle ' + s.highDot + ' fill="' + acc + '" />';
       } else if (state === 'low') {
-        fCore = '<circle cx="14" cy="16" r="1" fill="' + acc + '" />'
-          + '<circle cx="18" cy="16" r="1" fill="' + acc + '" />';
+        core = '<circle ' + s.lowDots[0] + ' fill="' + acc + '" />'
+          + '<circle ' + s.lowDots[1] + ' fill="' + acc + '" />';
       }
     }
+    return { outerFrame: outerFrame, core: core, outerColor: outerColor, accentColor: acc, baseOpacity: op };
+  }
 
+  // Render 20px pill icon (32x32 viewBox, 20px displayed size)
+  function renderPillIconSVG(state) {
+    var g = buildStateGeometry(state, 'small');
     return '<svg viewBox="0 0 32 32" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">'
-      + fOuterFrame + fCore
+      + g.outerFrame + g.core
       + '</svg>';
   }
 
   // Render favicon (64px, 32px, or 16px)
   function renderFaviconSVG(state, size) {
-    var map = stateColorMap[state];
-    var acc = map.accentColor;
-    var op = map.baseOpacity;
     var sizePx = size === '64' ? 64 : size === '32' ? 32 : 16;
-    var outerColor = state === 'blocked' ? 'rgba(255,255,255,0.2)' : acc;
-    var fOuterFrame = '';
-    var fCore = '';
-
-    if (state === 'blocked') {
-      fOuterFrame = '<path d="M 14.5 11.5 L 16 10 L 17.5 11.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 20.5 14.5 L 22 16 L 20.5 17.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 17.5 20.5 L 16 22 L 14.5 20.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 11.5 17.5 L 10 16 L 11.5 14.5" stroke="' + outerColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />';
-      fCore = '';
-    } else {
-      fOuterFrame = '<rect x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)" stroke="' + outerColor + '" stroke-width="1.5" fill="none" opacity="' + op + '" />';
-      if (state === 'initial') {
-        fCore = '<circle cx="16" cy="16" r="1" fill="' + acc + '" opacity="' + op + '" />';
-      } else if (state === 'standard') {
-        fCore = '<rect x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)" stroke="' + acc + '" stroke-width="1" fill="none" />';
-      } else if (state === 'high') {
-        fCore = '<circle cx="16" cy="16" r="2" fill="' + acc + '" />';
-      } else if (state === 'low') {
-        fCore = '<circle cx="14" cy="16" r="1" fill="' + acc + '" />'
-          + '<circle cx="18" cy="16" r="1" fill="' + acc + '" />';
-      }
-    }
-
+    var g = buildStateGeometry(state, 'small');
     return '<svg viewBox="0 0 32 32" width="' + sizePx + '" height="' + sizePx + '" fill="none" xmlns="http://www.w3.org/2000/svg">'
       + '<rect x="1" y="1" width="30" height="30" rx="5" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="#0f1011"/>'
-      + fOuterFrame
-      + '<g id="mini-core-content">' + fCore + '</g>'
+      + g.outerFrame
+      + '<g id="mini-core-content">' + g.core + '</g>'
       + '</svg>';
   }
 
   // Render full primary SVG (560x140 viewBox - for app icon / brand lockup)
   function renderStatefulSVG(state) {
-    var map = stateColorMap[state];
-    var acc = map.accentColor;
-    var op = map.baseOpacity;
-    var outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
-    var frameGeometry = '';
-    var coreContent = '';
-
-    if (state === 'blocked') {
-      // Fractured diamond (calculated from 60,60 radius)
-      frameGeometry = '<path d="M 54 40 L 60 34 L 66 40" stroke="' + outerColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 80 54 L 86 60 L 80 66" stroke="' + outerColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 66 80 L 60 86 L 54 80" stroke="' + outerColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />'
-        + '<path d="M 40 66 L 34 60 L 40 54" stroke="' + outerColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />';
-      coreContent = '';
-    } else {
-      // Solid pristine diamond
-      frameGeometry = '<rect x="42" y="42" width="36" height="36" rx="3" transform="rotate(45 60 60)" stroke="' + outerColor + '" stroke-width="3" opacity="' + op + '" fill="none" />';
-      if (state === 'initial') {
-        // Dormant tiny dot
-        coreContent = '<circle cx="60" cy="60" r="2.5" fill="' + acc + '" opacity="' + op + '" />';
-      } else if (state === 'standard') {
-        // Active inner spinning alignment phase
-        coreContent = '<rect x="52" y="52" width="16" height="16" rx="1.5" transform="rotate(15 60 60)" stroke="' + acc + '" stroke-width="2.5" fill="none" />';
-      } else if (state === 'high') {
-        // Absolute locked geometry
-        coreContent = '<circle cx="60" cy="60" r="6" fill="' + acc + '" />';
-      } else if (state === 'low') {
-        // Bifurcated core (human fallback required)
-        coreContent = '<circle cx="53" cy="60" r="4" fill="' + acc + '" />'
-          + '<circle cx="67" cy="60" r="4" fill="' + acc + '" />';
-      }
-    }
+    var g = buildStateGeometry(state, 'large');
+    var acc = g.accentColor;
+    var frameGeometry = g.outerFrame;
+    var coreContent = g.core;
 
     return '<svg id="primary-lockup-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" width="100%" height="100%" fill="none">'
       + '<defs>'
@@ -364,7 +355,7 @@
       + '<g id="shutter-core-content" style="transition: all 0.25s ease;">'
       + coreContent
       + '</g>'
-      + '<circle cx="104" cy="104" r="2.5" fill="' + (map.accentColor === '#28282c' ? '#8a8f98' : acc) + '" opacity="0.4"/>'
+      + '<circle cx="104" cy="104" r="2.5" fill="' + (state === 'initial' ? '#8a8f98' : acc) + '" opacity="0.4"/>'
       + '</g>'
       + '<g transform="translate(156, 12)">'
       + '<text x="0" y="68" class="brand-text">panel</text>'
@@ -373,9 +364,7 @@
       + '</svg>';
   }
 
-  // Legacy GLYPH_SVG — now replaced by renderPillIconSVG('standard')
-  // kept for backward compat if anything references it directly
-  var GLYPH_SVG = renderPillIconSVG('standard');
+  var GLYPH_SVG = renderPillIconSVG('initial');
 
   function renderPill(el, ctx) {
     var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts, forceTier = ctx.forceTier, bootDelayMs = Number(ctx.bootDelayMs || 2500);
@@ -420,17 +409,29 @@
       }
     }
 
-    function fireSolved(token, trust, tier_used) {
+    function resolveTrustState(trustTier, trust) {
+      if (trustTier === 'high' || trustTier === 'standard' || trustTier === 'low' || trustTier === 'blocked') {
+        return trustTier;
+      }
+      var n = typeof trust === 'number' ? trust : parseFloat(trust);
+      if (!isFinite(n)) return 'standard';
+      if (n >= 0.75) return 'high';
+      if (n >= 0.5) return 'standard';
+      if (n >= 0.2) return 'low';
+      return 'blocked';
+    }
+
+    function fireSolved(token, trust, tier_used, trust_tier) {
       widget.token = token;
-      widget.info = { trust: trust, tier_used: tier_used };
+      widget.info = { trust: trust, tier_used: tier_used, trust_tier: trust_tier };
       widget.tier_used = tier_used;
       pill.setAttribute('data-mode', 'c0');
       pill.setAttribute('data-state', 'verified');
-      var trustState = trust === 'high' ? 'high' : trust === 'low' ? 'low' : trust === 'standard' ? 'standard' : 'high';
+      var trustState = resolveTrustState(trust_tier, trust);
       updatePillIcon(trustState);
       try { pill.querySelector('.pnl-label').textContent = 'verified'; } catch (_) {}
-      try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: token, trust: trust, tier_used: tier_used }); } catch (_) {}
-      try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: token, trust: trust, tier_used: tier_used }, bubbles: true })); } catch (_) {}
+      try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: token, trust: trust, tier_used: tier_used, trust_tier: trustState }); } catch (_) {}
+      try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: token, trust: trust, tier_used: tier_used, trust_tier: trustState }, bubbles: true })); } catch (_) {}
     }
 
     function playC0Animation(then) {
@@ -538,7 +539,7 @@
           playC0Animation(function () {
             postResolveC0().then(function (rr) {
               if (rr && rr.success) {
-                fireSolved(rr.token, rr.trust, 'C0');
+                fireSolved(rr.token, rr.trust, 'C0', rr.verdict && rr.verdict.trust_tier);
               } else {
                 // C0 failed (dwell/trust floor) → escalate to C1 immediately
                 escalateTo('C1');
@@ -603,7 +604,7 @@
           if (currentTier === 'C0') {
             playC0Animation(function () {
               postResolveC0().then(function (rr) {
-                if (rr && rr.success) fireSolved(rr.token, rr.trust, 'C0');
+                if (rr && rr.success) fireSolved(rr.token, rr.trust, 'C0', rr.verdict && rr.verdict.trust_tier);
                 else openPopoverWith(resp);
               }).catch(function () { openPopoverWith(resp); });
             });
@@ -629,7 +630,7 @@
         // important: multiple widgets can live on one page. only the widget
         // with an active popover should accept iframe solved messages.
         if (!pop) return;
-        fireSolved(d.token, d.trust, currentTier || 'C1');
+        fireSolved(d.token, d.trust, currentTier || 'C1', d.trust_tier);
         // brief linger so the user sees the green flash, then close.
         setTimeout(function () {
           if (!pop) return;
