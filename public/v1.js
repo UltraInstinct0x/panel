@@ -156,6 +156,18 @@
       +   'opacity:0;transform:scale(.6) rotate(45deg);transition:opacity .3s ease, transform .3s cubic-bezier(.4,0,.2,1)}'
       + '.pnl-pill[data-state="verified"] .pnl-glyph{opacity:1;transform:scale(1) rotate(45deg)}'
       + '.pnl-glyph svg{display:block}'
+      + '.pnl-pill[data-trust-state="high"][data-state="verified"]{border-color:#4ade80;background:#0a1a0f;'
+      +   'box-shadow:0 0 0 1px rgba(74,222,128,.2) inset, 0 0 24px -8px rgba(74,222,128,.35)}'
+      + '.pnl-pill[data-trust-state="high"][data-state="verified"] .pnl-brand{color:#4ade80}'
+      + '.pnl-pill[data-trust-state="high"][data-state="verified"] .pnl-caption{color:#4ade80}'
+      + '.pnl-pill[data-trust-state="low"][data-state="verified"]{border-color:#f59e0b;background:#1a1408;'
+      +   'box-shadow:0 0 0 1px rgba(245,158,11,.2) inset, 0 0 24px -8px rgba(245,158,11,.25)}'
+      + '.pnl-pill[data-trust-state="low"][data-state="verified"] .pnl-brand{color:#f59e0b}'
+      + '.pnl-pill[data-trust-state="low"][data-state="verified"] .pnl-caption{color:#f59e0b}'
+      + '.pnl-pill[data-trust-state="blocked"][data-state="verified"]{border-color:#28282c;background:#0a0a0c;'
+      +   'box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}'
+      + '.pnl-pill[data-trust-state="blocked"][data-state="verified"] .pnl-brand{color:#52525b}'
+      + '.pnl-pill[data-trust-state="blocked"][data-state="verified"] .pnl-caption{color:#52525b}'
       + '.pnl-label{flex:1;text-align:left;letter-spacing:.01em;font-feature-settings:"ss01"}'
       + '.pnl-brand{font:11px/1 "JetBrains Mono",ui-monospace,monospace;color:#52525b;letter-spacing:.08em;text-transform:lowercase}'
       + '.pnl-pill[data-state="verified"] .pnl-brand{color:#67e8f9}'
@@ -278,15 +290,157 @@
     return renderPill(el, { siteKey: siteKey, pool: pool, opts: opts, forceTier: forceTier, bootDelayMs: bootDelayMs });
   }
 
-  // SVG diamond glyph — the C0 resolve mark. 12px, cyan stroke, no fill.
-  // chose diamond because: (1) it's a 45deg square — feels structural, not
-  // celebratory like a checkmark; (2) it echoes the pnl-box outline so the
-  // transition reads as "the box itself rotated and condensed"; (3) zero
-  // turnstile/recaptcha visual debt.
-  var GLYPH_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    + '<rect x="1.5" y="1.5" width="9" height="9" stroke="#67e8f9" stroke-width="1.6" stroke-linejoin="round"/>'
-    + '<circle cx="6" cy="6" r="1.6" fill="#67e8f9"/>'
-    + '</svg>';
+  // ---------- stateful SVG identity system ----------
+  // extracted from docs/assets/panel_tier_orbit_asset_suite.html
+  // five trust states with distinct geometric transformations:
+  // - initial: dormant tiny dot (opacity 0.4)
+  // - standard: rotating inner diamond (opacity 1.0, active calibration)
+  // - high: solid center dot (opacity 1.0, verified lock)
+  // - low: bifurcated core (two dots, human fallback)
+  // - blocked: fractured outer boundary, empty core
+  var stateColorMap = {
+    initial: {
+      accentColor: '#67e8f9',
+      baseOpacity: '0.4',
+    },
+    standard: {
+      accentColor: '#67e8f9',
+      baseOpacity: '1.0',
+    },
+    high: {
+      accentColor: '#4ade80',
+      baseOpacity: '1.0',
+    },
+    low: {
+      accentColor: '#f59e0b',
+      baseOpacity: '0.9',
+    },
+    blocked: {
+      accentColor: '#28282c',
+      baseOpacity: '0.4',
+    }
+  };
+
+  // shared five-state geometry. scales: 'small' = 32x32 viewBox (pill / favicon),
+  // 'large' = 120x120 inner box on the 560x140 lockup. each scale defines its own
+  // coordinate constants; buildStateGeometry composes them via shared branching.
+  // returns { outerFrame, core, outerColor, accentColor, baseOpacity }.
+  var GEOMETRY_SCALES = {
+    small: {
+      blockedPaths: [
+        'M 14.5 11.5 L 16 10 L 17.5 11.5',
+        'M 20.5 14.5 L 22 16 L 20.5 17.5',
+        'M 17.5 20.5 L 16 22 L 14.5 20.5',
+        'M 11.5 17.5 L 10 16 L 11.5 14.5',
+      ],
+      blockedStrokeWidth: '1.5',
+      diamondAttrs: 'x="11.5" y="11.5" width="9" height="9" rx="1.5" transform="rotate(45 16 16)"',
+      diamondStrokeWidth: '1.5',
+      initialDot: 'cx="16" cy="16" r="1"',
+      standardCoreAttrs: 'x="14" y="14" width="4" height="4" rx="0.5" transform="rotate(15 16 16)"',
+      standardCoreStrokeWidth: '1',
+      highDot: 'cx="16" cy="16" r="2"',
+      lowDots: ['cx="14" cy="16" r="1"', 'cx="18" cy="16" r="1"'],
+    },
+    large: {
+      blockedPaths: [
+        'M 54 40 L 60 34 L 66 40',
+        'M 80 54 L 86 60 L 80 66',
+        'M 66 80 L 60 86 L 54 80',
+        'M 40 66 L 34 60 L 40 54',
+      ],
+      blockedStrokeWidth: '3',
+      diamondAttrs: 'x="42" y="42" width="36" height="36" rx="3" transform="rotate(45 60 60)"',
+      diamondStrokeWidth: '3',
+      initialDot: 'cx="60" cy="60" r="2.5"',
+      standardCoreAttrs: 'x="52" y="52" width="16" height="16" rx="1.5" transform="rotate(15 60 60)"',
+      standardCoreStrokeWidth: '2.5',
+      highDot: 'cx="60" cy="60" r="6"',
+      lowDots: ['cx="53" cy="60" r="4"', 'cx="67" cy="60" r="4"'],
+    },
+  };
+
+  function buildStateGeometry(state, scale) {
+    var map = stateColorMap[state] || stateColorMap.initial;
+    var s = GEOMETRY_SCALES[scale] || GEOMETRY_SCALES.small;
+    var acc = map.accentColor;
+    var op = map.baseOpacity;
+    var outerColor = state === 'blocked' ? 'rgba(255, 255, 255, 0.2)' : acc;
+    var outerFrame = '';
+    var core = '';
+
+    if (state === 'blocked') {
+      for (var i = 0; i < s.blockedPaths.length; i++) {
+        outerFrame += '<path d="' + s.blockedPaths[i] + '" stroke="' + outerColor
+          + '" stroke-width="' + s.blockedStrokeWidth + '" stroke-linecap="round" stroke-linejoin="round" />';
+      }
+    } else {
+      outerFrame = '<rect ' + s.diamondAttrs + ' stroke="' + outerColor
+        + '" stroke-width="' + s.diamondStrokeWidth + '" fill="none" opacity="' + op + '" />';
+      if (state === 'initial') {
+        core = '<circle ' + s.initialDot + ' fill="' + acc + '" opacity="' + op + '" />';
+      } else if (state === 'standard') {
+        core = '<rect ' + s.standardCoreAttrs + ' stroke="' + acc
+          + '" stroke-width="' + s.standardCoreStrokeWidth + '" fill="none" />';
+      } else if (state === 'high') {
+        core = '<circle ' + s.highDot + ' fill="' + acc + '" />';
+      } else if (state === 'low') {
+        core = '<circle ' + s.lowDots[0] + ' fill="' + acc + '" />'
+          + '<circle ' + s.lowDots[1] + ' fill="' + acc + '" />';
+      }
+    }
+    return { outerFrame: outerFrame, core: core, outerColor: outerColor, accentColor: acc, baseOpacity: op };
+  }
+
+  // Render 20px pill icon (32x32 viewBox, 20px displayed size)
+  function renderPillIconSVG(state) {
+    var g = buildStateGeometry(state, 'small');
+    return '<svg viewBox="0 0 32 32" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + g.outerFrame + g.core
+      + '</svg>';
+  }
+
+  // Render favicon (64px, 32px, or 16px)
+  function renderFaviconSVG(state, size) {
+    var sizePx = size === '64' ? 64 : size === '32' ? 32 : 16;
+    var g = buildStateGeometry(state, 'small');
+    return '<svg viewBox="0 0 32 32" width="' + sizePx + '" height="' + sizePx + '" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<rect x="1" y="1" width="30" height="30" rx="5" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="#0f1011"/>'
+      + g.outerFrame
+      + '<g id="mini-core-content">' + g.core + '</g>'
+      + '</svg>';
+  }
+
+  // Render full primary SVG (560x140 viewBox - for app icon / brand lockup)
+  function renderStatefulSVG(state) {
+    var g = buildStateGeometry(state, 'large');
+    var acc = g.accentColor;
+    var frameGeometry = g.outerFrame;
+    var coreContent = g.core;
+
+    return '<svg id="primary-lockup-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" width="100%" height="100%" fill="none">'
+      + '<defs>'
+      + '<style>'
+      + '.brand-text { font-family: "Inter", -apple-system, sans-serif; font-weight: 700; font-size: 64px; fill: #f7f8f8; letter-spacing: -0.05em; font-feature-settings: "cv01" on, "ss03" on; }'
+      + '.metadata-text { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 11px; fill: #8a8f98; letter-spacing: 0.08em; }'
+      + '</style>'
+      + '</defs>'
+      + '<g id="phase-alignment" transform="translate(10, 10)">'
+      + '<rect x="4" y="4" width="112" height="112" rx="12" stroke="rgba(255, 255, 255, 0.08)" stroke-width="2" fill="#0f1011"/>'
+      + frameGeometry
+      + '<g id="shutter-core-content" style="transition: all 0.25s ease;">'
+      + coreContent
+      + '</g>'
+      + '<circle cx="104" cy="104" r="2.5" fill="' + (state === 'initial' ? '#8a8f98' : acc) + '" opacity="0.4"/>'
+      + '</g>'
+      + '<g transform="translate(156, 12)">'
+      + '<text x="0" y="68" class="brand-text">panel</text>'
+      + '<text x="3" y="96" class="metadata-text">INVISIBLE CAPTCHA &amp; AGENT GOVERNANCE</text>'
+      + '</g>'
+      + '</svg>';
+  }
+
+  var GLYPH_SVG = renderPillIconSVG('initial');
 
   function renderPill(el, ctx) {
     var siteKey = ctx.siteKey, pool = ctx.pool, opts = ctx.opts, forceTier = ctx.forceTier, bootDelayMs = Number(ctx.bootDelayMs || 2500);
@@ -320,28 +474,48 @@
     var raterId = null;
     var currentTier = null;
     var lastInitResp = null;
+    var currentTrustState = 'initial';
 
-    function fireSolved(token, trust, tier_used) {
+    function updatePillIcon(trustState) {
+      currentTrustState = trustState;
+      pill.setAttribute('data-trust-state', trustState);
+      var glyphEl = pill.querySelector('.pnl-glyph');
+      if (glyphEl) {
+        glyphEl.innerHTML = renderPillIconSVG(trustState);
+      }
+    }
+
+    function resolveTrustState(trustTier, trust) {
+      if (trustTier === 'high' || trustTier === 'standard' || trustTier === 'low' || trustTier === 'blocked') {
+        return trustTier;
+      }
+      var n = typeof trust === 'number' ? trust : parseFloat(trust);
+      if (!isFinite(n)) return 'standard';
+      if (n >= 0.75) return 'high';
+      if (n >= 0.5) return 'standard';
+      if (n >= 0.2) return 'low';
+      return 'blocked';
+    }
+
+    function fireSolved(token, trust, tier_used, trust_tier) {
       widget.token = token;
-      widget.info = { trust: trust, tier_used: tier_used };
+      widget.info = { trust: trust, tier_used: tier_used, trust_tier: trust_tier };
       widget.tier_used = tier_used;
-      pill.setAttribute('data-mode', 'c0'); // reuse c0 cursor — non-interactive once verified
-      // ensure pill reflects verified state for C1/C2/C3 lanes (C0 already did this in playC0Animation)
+      pill.setAttribute('data-mode', 'c0');
       pill.setAttribute('data-state', 'verified');
+      var trustState = resolveTrustState(trust_tier, trust);
+      updatePillIcon(trustState);
       try { pill.querySelector('.pnl-label').textContent = 'verified'; } catch (_) {}
-      try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: token, trust: trust, tier_used: tier_used }); } catch (_) {}
-      try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: token, trust: trust, tier_used: tier_used }, bubbles: true })); } catch (_) {}
+      try { if (typeof opts.onSolved === 'function') opts.onSolved({ token: token, trust: trust, tier_used: tier_used, trust_tier: trustState }); } catch (_) {}
+      try { el.dispatchEvent(new CustomEvent('panel:solved', { detail: { token: token, trust: trust, tier_used: tier_used, trust_tier: trustState }, bubbles: true })); } catch (_) {}
     }
 
     function playC0Animation(then) {
-      // total: ~1200ms.
-      //   0-100ms:   pill enters [data-state="scanning"], scanline starts (900ms duration).
-      //   900-1200ms: scanline ends; pill flips to [data-state="verified"]:
-      //               box dissolves, glyph fades-in + rotates-up, caption fades-in,
-      //               inner cyan glow ramps in via box-shadow transition.
+      updatePillIcon('standard');
       pill.querySelector('.pnl-label').textContent = 'verifying';
       pill.setAttribute('data-state', 'scanning');
       setTimeout(function () {
+        updatePillIcon('high');
         pill.setAttribute('data-state', 'verified');
         pill.querySelector('.pnl-label').textContent = 'verified';
         setTimeout(then, 300);
@@ -455,7 +629,7 @@
           playC0Animation(function () {
             postResolveC0().then(function (rr) {
               if (rr && rr.success) {
-                fireSolved(rr.token, rr.trust, 'C0');
+                fireSolved(rr.token, rr.trust, 'C0', rr.verdict && rr.verdict.trust_tier);
               } else {
                 // C0 failed (dwell/trust floor) → escalate to C1 immediately
                 escalateTo('C1');
@@ -520,7 +694,7 @@
           if (currentTier === 'C0') {
             playC0Animation(function () {
               postResolveC0().then(function (rr) {
-                if (rr && rr.success) fireSolved(rr.token, rr.trust, 'C0');
+                if (rr && rr.success) fireSolved(rr.token, rr.trust, 'C0', rr.verdict && rr.verdict.trust_tier);
                 else openPopoverWith(resp);
               }).catch(function () { openPopoverWith(resp); });
             });
@@ -546,7 +720,7 @@
         // important: multiple widgets can live on one page. only the widget
         // with an active popover should accept iframe solved messages.
         if (!pop) return;
-        fireSolved(d.token, d.trust, currentTier || 'C1');
+        fireSolved(d.token, d.trust, currentTier || 'C1', d.trust_tier);
         // brief linger so the user sees the green flash, then close.
         setTimeout(function () {
           if (!pop) return;
