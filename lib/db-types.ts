@@ -95,6 +95,18 @@ export interface RateBucketsTable {
   updated_at: number;
 }
 
+export interface RaterLedgerTable {
+  rater_id: string;
+  judgments_total: number;
+  converged_judgments_total: number;
+  converged_agree_total: number;
+  agreement_rate: number;
+  calibration_events_total: number;
+  calibration_brier_sum: number;
+  calibration_score: number;
+  last_seen: number;
+}
+
 // the master DB shape. add new tables here as they land.
 export interface Database {
   units: UnitsTable;
@@ -106,4 +118,5 @@ export interface Database {
   audit_log: AuditLogTable;
   jti_consumed: JtiConsumedTable;
   rate_buckets: RateBucketsTable;
+  rater_ledger: RaterLedgerTable;
 }
