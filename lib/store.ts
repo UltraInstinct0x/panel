@@ -14,6 +14,7 @@ import {
   applyBehavioralFloor,
   ensureHoneypotSchema,
 } from './honeypot';
+import { updateRaterLedgerOnJudgment } from './rater-ledger';
 
 export type UnitType =
   | 'pairwise_trace'
@@ -235,6 +236,7 @@ export function recordJudgment(input: {
   newTrust = Math.max(0, Math.min(1, newTrust));
   const earned = honeypot_failed ? 0 : 1 + (agreed === true ? 2 : 0);
 
+  const createdAt = Date.now();
   const j: Judgment = {
     id: `j_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
     unit_id: input.unit_id,
@@ -242,7 +244,7 @@ export function recordJudgment(input: {
     choice: input.choice,
     latency_ms: input.latency_ms,
     confidence: input.confidence,
-    created_at: Date.now(),
+    created_at: createdAt,
     agreed_with_gold: agreed,
     honeypot_failed,
     pool: unit.pool,
@@ -279,6 +281,11 @@ export function recordJudgment(input: {
       honeypot_failed ? 1 : 0,
       input.rater_id
     );
+    updateRaterLedgerOnJudgment({
+      rater_id: input.rater_id,
+      agreed_with_gold: agreed,
+      nowMs: createdAt,
+    });
   });
   tx();
 

@@ -40,6 +40,20 @@ function openDb(): Database.Database {
       created_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS rater_ledger (
+      rater_id TEXT PRIMARY KEY,
+      judgments_total INTEGER NOT NULL DEFAULT 0,
+      converged_judgments_total INTEGER NOT NULL DEFAULT 0,
+      converged_agree_total INTEGER NOT NULL DEFAULT 0,
+      agreement_rate REAL NOT NULL DEFAULT 0.5,
+      calibration_events_total INTEGER NOT NULL DEFAULT 0,
+      calibration_brier_sum REAL NOT NULL DEFAULT 0,
+      calibration_score REAL NOT NULL DEFAULT 0.5,
+      last_seen INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_rater_ledger_last_seen ON rater_ledger(last_seen);
+    CREATE INDEX IF NOT EXISTS idx_rater_ledger_judgments_total ON rater_ledger(judgments_total);
+
     CREATE TABLE IF NOT EXISTS judgments (
       id TEXT PRIMARY KEY,
       unit_id TEXT NOT NULL,

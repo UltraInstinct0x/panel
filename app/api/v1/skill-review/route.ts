@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
   const sourceAgent = String(body?.source_agent || body?.agent || '').slice(0, 200);
   const yesLabel = String(body?.yes_label || 'ship it').slice(0, 32);
   const noLabel = String(body?.no_label || 'reject').slice(0, 32);
+  const trustedPoolOnly = Boolean(body?.trusted_pool_only);
+  const unitPool = trustedPoolOnly ? 'technical' : 'public';
 
   if (!diff) return NextResponse.json({ error: 'diff_required' }, { status: 400 });
 
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest) {
     const unit: any = {
       id: unitId,
       type: 'skill_diff_review',
-      pool: 'public',
+      pool: unitPool,
       source_agent: sourceAgent || null,
       prompt_context: promptContext || null,
       question: 'should this skill update ship?',
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
       est_seconds: 8,
     };
     db.prepare('INSERT INTO units(id, json, pool, is_honeypot, created_at) VALUES (?,?,?,?,?)').run(
-      unitId, JSON.stringify(unit), 'public', 0, now,
+      unitId, JSON.stringify(unit), unitPool, 0, now,
     );
     if (externalRef) {
       db.prepare(

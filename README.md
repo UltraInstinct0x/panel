@@ -103,7 +103,24 @@ a next.js 14 app. sqlite persistence. iframe SDK.
 | `/api/units/score` | operator reads aggregate score for a unit (HMAC, by `ref` or `id`) |
 | `/api/judgments` | accepts a judgment, returns attestation token |
 | `/api/verify` | server-side token verification (operator-key auth) |
+| `/api/v1/skill-review` | HMAC-auth ingest for one skill diff review unit (supports `trusted_pool_only` routing to technical pool) |
+| `/api/v1/skill-review/:unit_id` | public verdict API with weighted + raw consensus and weight distribution |
 | `/v1.js` | drop-in widget loader (pill mode default, modal expands on click) |
+
+### skill review verdict contract (`GET /api/v1/skill-review/:unit_id`)
+
+Response fields include:
+- `consensus` (backward-compatible alias of weighted consensus)
+- `weighted_consensus`
+- `raw_consensus`
+- `weight_distribution`:
+  - `raters_considered`
+  - `weighted_raters`
+  - `fallback_unweighted_raters`
+  - `max_weight_applied`
+  - `min_weight_applied`
+  - `total_yes_weight`
+  - `total_no_weight`
 
 unit types implemented in the public pool: pairwise_taste, taste_rank, dub_sync, sincere_vs_sarcastic, ai_vs_real, headline_pick, drag_to_rank, span_highlight, **ai_output_rating** (operator-ingested image rating with peer-aggregate scoring, no gold), **skill_diff_review** (hermes skill update judgment, weighted consensus API), **media_quality** (AI-generated image/video rating), **media_origin** (AI-vs-real binary with honeypot seeding). honeypot variants of taste pool units.
 

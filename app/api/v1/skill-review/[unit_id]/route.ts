@@ -3,6 +3,7 @@
 // Shape designed for GitHub Action consumption: status + n + consensus + threshold metadata.
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { computeWeightedConsensus } from '@/lib/rater-ledger';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -34,38 +35,46 @@ export async function GET(_req: NextRequest, ctx: { params: { unit_id: string } 
   }
 
   const judgments = db.prepare(
-    `SELECT j.choice, j.created_at, j.honeypot_failed, r.trust
-       FROM judgments j LEFT JOIN raters r ON r.id = j.rater_id
+    `SELECT j.choice, j.created_at, j.honeypot_failed, r.trust,
+            rl.judgments_total, rl.agreement_rate, rl.calibration_score
+       FROM judgments j
+       LEFT JOIN raters r ON r.id = j.rater_id
+       LEFT JOIN rater_ledger rl ON rl.rater_id = j.rater_id
       WHERE j.unit_id = ? AND j.honeypot_failed = 0`
-  ).all(unitId) as { choice: string; created_at: number; honeypot_failed: number; trust: number | null }[];
+  ).all(unitId) as Array<{
+    choice: string;
+    created_at: number;
+    honeypot_failed: number;
+    trust: number | null;
+    judgments_total: number | null;
+    agreement_rate: number | null;
+    calibration_score: number | null;
+  }>;
 
-  let yesW = 0, noW = 0, otherW = 0;
-  let yesN = 0, noN = 0, otherN = 0;
-  for (const j of judgments) {
-    const w = Math.max(0.1, Math.min(1, j.trust ?? 0.5));
-    if (j.choice === 'yes') { yesW += w; yesN += 1; }
-    else if (j.choice === 'no') { noW += w; noN += 1; }
-    else { otherW += w; otherN += 1; }
-  }
-  const n = yesN + noN + otherN;
-  const decisiveW = yesW + noW;
-  const yesShare = decisiveW > 0 ? yesW / decisiveW : 0;
-  const noShare = decisiveW > 0 ? noW / decisiveW : 0;
+  const yesN = judgments.filter((j) => j.choice === 'yes').length;
+  const noN = judgments.filter((j) => j.choice === 'no').length;
+  const otherN = judgments.length - yesN - noN;
+  const n = judgments.length;
+
+  const weighted = computeWeightedConsensus(judgments);
+  const weightedDecisive = weighted.total_yes_weight + weighted.total_no_weight;
+  const yesWeightedShare = weightedDecisive > 0 ? weighted.total_yes_weight / weightedDecisive : 0;
+  const noWeightedShare = weightedDecisive > 0 ? weighted.total_no_weight / weightedDecisive : 0;
 
   let status: Verdict;
   let consensus = 0;
   if (n < DEFAULT_MIN_N) {
     status = 'pending';
-    consensus = Math.max(yesShare, noShare);
-  } else if (yesShare >= DEFAULT_THRESHOLD) {
+    consensus = weighted.weighted_consensus;
+  } else if (yesWeightedShare >= DEFAULT_THRESHOLD) {
     status = 'approved';
-    consensus = yesShare;
-  } else if (noShare >= DEFAULT_THRESHOLD) {
+    consensus = yesWeightedShare;
+  } else if (noWeightedShare >= DEFAULT_THRESHOLD) {
     status = 'rejected';
-    consensus = noShare;
+    consensus = noWeightedShare;
   } else {
     status = 'no_consensus';
-    consensus = Math.max(yesShare, noShare);
+    consensus = weighted.weighted_consensus;
   }
 
   return NextResponse.json({
@@ -77,8 +86,19 @@ export async function GET(_req: NextRequest, ctx: { params: { unit_id: string } 
     prompt_context: unit?.prompt_context || null,
     status,
     consensus: Math.round(consensus * 1000) / 1000,
+    weighted_consensus: Math.round(weighted.weighted_consensus * 1000) / 1000,
+    raw_consensus: Math.round(weighted.raw_consensus * 1000) / 1000,
     n,
     counts: { yes: yesN, no: noN, other: otherN },
+    weight_distribution: {
+      raters_considered: yesN + noN,
+      weighted_raters: weighted.weighted_raters,
+      fallback_unweighted_raters: weighted.fallback_unweighted_raters,
+      max_weight_applied: Math.round(weighted.max_weight_applied * 1000) / 1000,
+      min_weight_applied: Math.round(weighted.min_weight_applied * 1000) / 1000,
+      total_yes_weight: Math.round(weighted.total_yes_weight * 1000) / 1000,
+      total_no_weight: Math.round(weighted.total_no_weight * 1000) / 1000,
+    },
     threshold: DEFAULT_THRESHOLD,
     min_n: DEFAULT_MIN_N,
     last_judged_at: judgments.length ? Math.max(...judgments.map(j => j.created_at)) : null,
