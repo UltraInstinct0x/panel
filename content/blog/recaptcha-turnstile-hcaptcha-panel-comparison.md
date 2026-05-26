@@ -5,7 +5,7 @@ date: 2026-05-26
 description: "Four captcha-replacement systems, compared on what they actually measure, what they emit, and what operators can do with the output. No marketing summary — the underlying signal."
 tags: [captcha, comparison, recaptcha, turnstile, hcaptcha, agent-traffic]
 author: goku
-draft: true
+draft: false
 ---
 
 ## the short version

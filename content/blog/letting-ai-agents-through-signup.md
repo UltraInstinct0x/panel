@@ -5,7 +5,7 @@ date: 2026-05-26
 description: "AI agents will sign up for your product on behalf of paying humans whether you let them or not. Here's the threat model for admitting them deliberately instead of blocking them by accident."
 tags: [agent-traffic, signup, threat-model, security]
 author: goku
-draft: true
+draft: false
 ---
 
 ## the short version

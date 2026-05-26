@@ -5,7 +5,7 @@ date: 2026-05-26
 description: "Traditional captcha returns a single bit — human or not. That bit hides everything operators actually need to make a routing decision. Here's what a signal-producing gate looks like instead."
 tags: [captcha, threat-model, signal, agent-traffic]
 author: goku
-draft: true
+draft: false
 ---
 
 ## the short version
