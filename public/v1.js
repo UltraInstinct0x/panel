@@ -53,6 +53,82 @@
     model_error: false,
   };
 
+  // ---------- edge model phase 2 scaffolding ----------
+  // simplified inline versions of edge/features.js + edge/worker.js logic.
+  // phase 2: always returns rules_only, no real model artifacts yet.
+  // full modules in public/edge/*.js are kept for future phases + tests.
+
+  function extractEdgeFeatures(fp) {
+    if (!fp || typeof fp !== 'object') {
+      return { feature_version: 'v1', aggregates_only: true };
+    }
+    // minimal aggregates for phase 2 scaffolding
+    var mouseSamples = fp.mouse_samples || [];
+    var speeds = [];
+    for (var i = 1; i < mouseSamples.length; i++) {
+      var prev = mouseSamples[i - 1];
+      var curr = mouseSamples[i];
+      var dt = (curr.t - prev.t) / 1000;
+      if (dt > 0 && dt < 5) {
+        var dx = curr.x - prev.x;
+        var dy = curr.y - prev.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        speeds.push(dist / dt);
+      }
+    }
+    var meanSpeed = speeds.length > 0 ? speeds.reduce(function (a, b) { return a + b; }, 0) / speeds.length : 0;
+
+    return {
+      feature_version: 'v1',
+      aggregates_only: true,
+      pointer_mean_speed: meanSpeed,
+      mouse_count: mouseSamples.length,
+      dwell_ms: fp.dwell_ms || 0,
+      key_events: fp.key_events || 0,
+      focus_events: fp.focus_events || 0,
+      pointer_type: fp.pointer_type || 'unknown',
+      automation_webdriver: typeof navigator !== 'undefined' && navigator.webdriver === true,
+      automation_headless: typeof navigator !== 'undefined' && (/HeadlessChrome/i).test(navigator.userAgent),
+    };
+  }
+
+  function invokeEdgeModel(features, timeoutMs) {
+    // phase 2: no real model yet; still enforce timeout contract now so
+    // future inference wiring cannot accidentally hang resolve path.
+    return new Promise(function (resolve) {
+      var done = false;
+      var timeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : 100;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        resolve({
+          local_score: null,
+          local_class_probs: {},
+          reason_codes: ['edge_model_timeout', 'phase2_inline'],
+          model_version: 'edge-risk-v1-scaffold',
+          feature_version: features && features.feature_version ? features.feature_version : 'v1',
+          runtime: 'rules_only',
+          model_error: true,
+        });
+      }, timeout);
+
+      setTimeout(function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve({
+          local_score: null,
+          local_class_probs: {},
+          reason_codes: ['edge_model_scaffold', 'phase2_inline'],
+          model_version: 'edge-risk-v1-scaffold',
+          feature_version: features && features.feature_version ? features.feature_version : 'v1',
+          runtime: 'rules_only',
+          model_error: false,
+        });
+      }, 0);
+    });
+  }
+
   // ---------- styles ----------
   // dark linear-app palette: #08080b bg, #67e8f9 cyan, inter+jb-mono.
   // animation primitive: a thin cyan scanline sweeps the pill, then crystallizes
@@ -288,15 +364,29 @@
     }
 
     function postResolveC0() {
-      return fetch(ORIGIN + '/api/challenge/resolve?site_key=' + encodeURIComponent(siteKey), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-panel-site-key': siteKey },
-        body: JSON.stringify({
-          challenge_token: challengeToken,
-          fingerprint: collector.snapshot(),
-          edge_model: EDGE_MODEL_DEFAULT,
-        }),
-      }).then(function (r) { return r.json(); });
+      var fpSnapshot = collector.snapshot();
+      var features = extractEdgeFeatures(fpSnapshot);
+      return invokeEdgeModel(features, 100).then(function (edgeResult) {
+        return fetch(ORIGIN + '/api/challenge/resolve?site_key=' + encodeURIComponent(siteKey), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-panel-site-key': siteKey },
+          body: JSON.stringify({
+            challenge_token: challengeToken,
+            fingerprint: fpSnapshot,
+            edge_model: edgeResult,
+          }),
+        }).then(function (r) { return r.json(); });
+      }).catch(function () {
+        return fetch(ORIGIN + '/api/challenge/resolve?site_key=' + encodeURIComponent(siteKey), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-panel-site-key': siteKey },
+          body: JSON.stringify({
+            challenge_token: challengeToken,
+            fingerprint: fpSnapshot,
+            edge_model: EDGE_MODEL_DEFAULT,
+          }),
+        }).then(function (r) { return r.json(); });
+      });
     }
 
     function openPopoverWith(initResp) {
