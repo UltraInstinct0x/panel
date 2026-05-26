@@ -1,20 +1,22 @@
 # Opencode execution checklist: panel edge model (≤10MB)
 
-Use this checklist to execute the edge-model rollout with planning/build/review agents.
+Use this checklist to execute the edge-model rollout with planning/build/review agents. Last updated: 2026-05-26 after PR #20 (contract), #21 (worker/runtime/features), #22 (stateful SVG).
+
+**Current phase:** Phase 1 (contract/fallback) ✅ + Phase 2 (worker/runtime/features) ✅ completed. All runtime currently operates in `rules_only` fallback — no actual model loaded yet.
 
 ---
 
 ## A) Planning checklist (must complete before coding)
 
-- [ ] Confirm files touched:
-  - [ ] widget runtime path (`public/v1.js` or split modules)
-  - [ ] challenge init/resolve handlers
-  - [ ] server fusion/policy layer in `lib/`
-  - [ ] telemetry/logging schema
-- [ ] Define `client_features_v1` schema (aggregates only)
-- [ ] Define payload and response contract updates
-- [ ] Define fallback policy (`rules_only`) and thresholds
-- [ ] Define benchmark harness and pass/fail gates
+- [x] Confirm files touched:
+  - [x] widget runtime path (`public/v1.js` or split modules)
+  - [x] challenge init/resolve handlers
+  - [x] server fusion/policy layer in `lib/`
+  - [x] telemetry/logging schema
+- [x] Define `client_features_v1` schema (aggregates only)
+- [x] Define payload and response contract updates
+- [x] Define fallback policy (`rules_only`) and thresholds
+- [x] Define benchmark harness and pass/fail gates
 
 Deliverable: `implementation-plan.md` with file-level diffs and sequence.
 
@@ -23,47 +25,47 @@ Deliverable: `implementation-plan.md` with file-level diffs and sequence.
 ## B) Build checklist (implementation)
 
 ### Client
-- [ ] Add feature extraction module (short-window aggregates)
-- [ ] Add model loader/inference in worker (WASM path first)
-- [ ] Add runtime capability detection + health flags
-- [ ] Add fallback to `rules_only` if unsupported/slow
-- [ ] Ensure model artifact budget stays ≤10MB compressed
+- [x] Add feature extraction module (short-window aggregates) — `public/edge/features.js`
+- [ ] Add model loader/inference in worker (WASM path first) — **not yet**
+- [x] Add runtime capability detection + health flags — `public/edge/runtime.js`
+- [x] Add fallback to `rules_only` if unsupported/slow — `public/edge/worker.js`
+- [ ] Ensure model artifact budget stays ≤10MB compressed — **no model loaded yet, still pure fallback**
 
 ### Server
-- [ ] Extend resolve/verify path to ingest model payload
-- [ ] Add fusion logic with existing server signals
-- [ ] Emit structured verdict + confidence + reason codes
-- [ ] Keep existing auth/challenge invariants intact
+- [x] Extend resolve/verify path to ingest model payload — `lib/edge-model-contract.ts` + `app/api/challenge/resolve/route.ts`
+- [x] Add fusion logic with existing server signals — verdict builder in contract
+- [x] Emit structured verdict + confidence + reason codes — trust tier, confidence, reason_codes
+- [x] Keep existing auth/challenge invariants intact — verified via test suite
 
 ### Observability
-- [ ] Log `model_version`, `feature_version`, `runtime`
-- [ ] Log confidence band and selected reason codes
-- [ ] Add counters for fallback rate and model errors
+- [x] Log `model_version`, `feature_version`, `runtime` — in payload contract
+- [x] Log confidence band and selected reason codes
+- [x] Add counters for fallback rate and model errors — `lib/operator-stats.ts`
 
 ### Safety
-- [ ] Hard timeout on inference path
-- [ ] Never block verification on model init failure
-- [ ] Preserve current UX under degraded mode
+- [x] Hard timeout on inference path — `public/edge/worker.js` timeout contract
+- [x] Never block verification on model init failure — `rules_only` fallback is always the default
+- [x] Preserve current UX under degraded mode — verified, no regression
 
 ---
 
 ## C) Test checklist
 
 ### Functional
-- [ ] Existing verification flow unchanged when model disabled
-- [ ] Model-enabled path returns structured fields
-- [ ] Fallback path triggers correctly on unsupported runtime
-- [ ] No cross-widget state bleed regressions
+- [x] Existing verification flow unchanged when model disabled — tested, passes
+- [x] Model-enabled path returns structured fields — contract tests pass
+- [x] Fallback path triggers correctly on unsupported runtime — `edge-runtime-fallback.test.ts`
+- [x] No cross-widget state bleed regressions — verified
 
 ### Performance
-- [ ] p95 init and infer within budget on desktop
-- [ ] p95 init and infer within budget on mid-tier mobile profile
-- [ ] Main-thread jank not introduced
+- [ ] p95 init and infer within budget on desktop — **no model loaded yet, benchmarks pending**
+- [ ] p95 init and infer within budget on mid-tier mobile profile — **pending**
+- [x] Main-thread jank not introduced — runs in worker
 
 ### Quality
-- [ ] Compare model+fusion vs rules-only baseline
-- [ ] Report lift/precision/false-positive deltas
-- [ ] Confirm no major conversion-regression indicators
+- [ ] Compare model+fusion vs rules-only baseline — **no model yet**
+- [ ] Report lift/precision/false-positive deltas — **pending**
+- [ ] Confirm no major conversion-regression indicators — **pending
 
 ---
 

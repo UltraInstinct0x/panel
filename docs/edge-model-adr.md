@@ -1,9 +1,10 @@
 # ADR-0001: Edge model for panel widget (≤10MB)
 
-- **Status:** Proposed (implementation-ready)
-- **Date:** 2026-05-26
+- **Status:** In progress
+- **Date:** 2026-05-26 (updated 2026-05-26)
 - **Owners:** panel core
 - **Scope:** Browser widget (`public/v1.js`) + challenge/verify fusion path
+- **Shipped PRs:** #20 (contract/fallback), #21 (worker/runtime/features), #22 (stateful SVG)
 
 ---
 
@@ -156,7 +157,30 @@ Must pass all:
 
 ---
 
-## 12) Risks
+## 12) Current status (2026-05-26)
+
+**Shipped:**
+- ✅ Structured verdict contract (`lib/edge-model-contract.ts`): trust tier, confidence, reason codes
+- ✅ Edge payload wiring in `public/v1.js` with fallback path
+- ✅ Feature extraction scaffold (`public/edge/features.js`) — conservative heuristics, no false-positive-prone signals
+- ✅ Runtime capability detection (`public/edge/runtime.js`) — wasm, webgpu, worker support checks
+- ✅ Worker with hard timeout (`public/edge/worker.js`) — falls back to `rules_only` on timeout/unsupported
+- ✅ Telemetry counters in `lib/operator-stats.ts`
+- ✅ All edge paths exercised in CI
+- ✅ Stateful SVG brand integration (`public/v1.js`)
+
+**Not yet shipped (next phases):**
+- ❌ Actual tiny model (MLP, INT8 quantized, 1–4MB)
+- ❌ WASM inference runtime integration
+- ❌ WebGPU path
+- ❌ p95 latency benchmarks with real model
+- ❌ Detection-lift evaluation vs rules-only baseline
+- ❌ Compliance: retention TTLs, region policy knobs
+- ❌ Feature flag for canary rollout
+
+Current runtime always operates in `rules_only` fallback until model is loaded.
+
+## 13) Risks
 
 - Adaptive evasion by bots → mitigate via rotating traps + server fusion
 - Mobile performance variance → strict fallback thresholds
