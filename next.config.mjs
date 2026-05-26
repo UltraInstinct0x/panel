@@ -4,6 +4,10 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     instrumentationHook: true,
+    // Ensure markdown post sources are present in standalone runtime output.
+    outputFileTracingIncludes: {
+      '/*': ['./content/blog/**/*'],
+    },
   },
 };
 export default nextConfig;
