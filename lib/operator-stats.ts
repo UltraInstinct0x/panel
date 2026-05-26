@@ -16,13 +16,36 @@ function ensure(): void {
       pool TEXT,
       trust REAL,
       risk REAL,
+      verdict TEXT,
+      confidence REAL,
+      trust_tier TEXT,
+      reason_codes_json TEXT,
+      edge_runtime TEXT,
+      edge_model_version TEXT,
+      edge_feature_version TEXT,
+      edge_fallback INTEGER,
+      edge_model_error INTEGER,
       created_at INTEGER NOT NULL,
       resolved_at INTEGER,
       resolution TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_chev_key_ts ON challenge_events(site_key, created_at DESC);
   `);
+  ensureChallengeEventColumns();
   _ensured = true;
+}
+
+function ensureChallengeEventColumns(): void {
+  const addCol = (sql: string) => { try { db.exec(sql); } catch {} };
+  addCol('ALTER TABLE challenge_events ADD COLUMN verdict TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN confidence REAL');
+  addCol('ALTER TABLE challenge_events ADD COLUMN trust_tier TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN reason_codes_json TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN edge_runtime TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN edge_model_version TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN edge_feature_version TEXT');
+  addCol('ALTER TABLE challenge_events ADD COLUMN edge_fallback INTEGER');
+  addCol('ALTER TABLE challenge_events ADD COLUMN edge_model_error INTEGER');
 }
 
 export function recordChallengeIssued(args: {
@@ -34,11 +57,46 @@ export function recordChallengeIssued(args: {
   ).run(args.jti, args.site_key, args.tier, args.pool ?? null, args.trust ?? null, args.risk ?? null, Date.now());
 }
 
-export function recordChallengeResolved(jti: string, resolution: 'pass' | 'retry' | 'hard_fail'): void {
+export function recordChallengeResolved(jti: string, resolution: 'pass' | 'retry' | 'hard_fail', meta?: {
+  verdict?: string;
+  confidence?: number;
+  trust_tier?: string;
+  reason_codes?: string[];
+  edge_runtime?: string;
+  edge_model_version?: string;
+  edge_feature_version?: string;
+  edge_fallback?: boolean;
+  edge_model_error?: boolean;
+}): void {
   ensure();
   db.prepare(
-    `UPDATE challenge_events SET resolved_at = ?, resolution = ? WHERE jti = ? AND resolved_at IS NULL`,
-  ).run(Date.now(), resolution, jti);
+    `UPDATE challenge_events
+      SET resolved_at = ?,
+          resolution = ?,
+          verdict = ?,
+          confidence = ?,
+          trust_tier = ?,
+          reason_codes_json = ?,
+          edge_runtime = ?,
+          edge_model_version = ?,
+          edge_feature_version = ?,
+          edge_fallback = ?,
+          edge_model_error = ?
+      WHERE jti = ? AND resolved_at IS NULL`,
+  ).run(
+    Date.now(),
+    resolution,
+    meta?.verdict ?? null,
+    meta?.confidence ?? null,
+    meta?.trust_tier ?? null,
+    meta?.reason_codes ? JSON.stringify(meta.reason_codes) : null,
+    meta?.edge_runtime ?? null,
+    meta?.edge_model_version ?? null,
+    meta?.edge_feature_version ?? null,
+    meta?.edge_fallback ? 1 : 0,
+    meta?.edge_model_error ? 1 : 0,
+    jti,
+  );
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -174,17 +232,31 @@ export function ingestStats7d(siteKey: string): { ingests: number; units_emitted
   return { ingests: ingestCount(siteKey, 7), units_emitted: unitsEmittedCount(siteKey, 7) };
 }
 
-export function challengeStats7d(siteKey: string): { issued: number; resolved: number; passed: number } {
+export function challengeStats7d(siteKey: string): { issued: number; resolved: number; passed: number; edge_fallbacks: number; edge_model_errors: number } {
   ensure();
   const since = Date.now() - 7 * DAY;
   const r = db.prepare(
     `SELECT
        COUNT(*) AS issued,
        SUM(CASE WHEN resolution IS NOT NULL THEN 1 ELSE 0 END) AS resolved,
-       SUM(CASE WHEN resolution = 'pass' THEN 1 ELSE 0 END) AS passed
+       SUM(CASE WHEN resolution = 'pass' THEN 1 ELSE 0 END) AS passed,
+       SUM(CASE WHEN edge_fallback = 1 THEN 1 ELSE 0 END) AS edge_fallbacks,
+       SUM(CASE WHEN edge_model_error = 1 THEN 1 ELSE 0 END) AS edge_model_errors
      FROM challenge_events WHERE site_key = ? AND created_at >= ?`,
-  ).get(siteKey, since) as { issued: number; resolved: number | null; passed: number | null } | undefined;
-  return { issued: r?.issued ?? 0, resolved: r?.resolved ?? 0, passed: r?.passed ?? 0 };
+  ).get(siteKey, since) as {
+    issued: number;
+    resolved: number | null;
+    passed: number | null;
+    edge_fallbacks: number | null;
+    edge_model_errors: number | null;
+  } | undefined;
+  return {
+    issued: r?.issued ?? 0,
+    resolved: r?.resolved ?? 0,
+    passed: r?.passed ?? 0,
+    edge_fallbacks: r?.edge_fallbacks ?? 0,
+    edge_model_errors: r?.edge_model_errors ?? 0,
+  };
 }
 
 export function tierDistribution7d(siteKey: string): { tier: string; n: number }[] {

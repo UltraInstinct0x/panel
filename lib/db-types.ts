@@ -107,6 +107,27 @@ export interface RaterLedgerTable {
   last_seen: number;
 }
 
+export interface ChallengeEventsTable {
+  jti: string;
+  site_key: string;
+  tier: string;
+  pool: string | null;
+  trust: number | null;
+  risk: number | null;
+  verdict: string | null;
+  confidence: number | null;
+  trust_tier: string | null;
+  reason_codes_json: string | null;
+  edge_runtime: string | null;
+  edge_model_version: string | null;
+  edge_feature_version: string | null;
+  edge_fallback: number | null;
+  edge_model_error: number | null;
+  created_at: number;
+  resolved_at: number | null;
+  resolution: string | null;
+}
+
 // the master DB shape. add new tables here as they land.
 export interface Database {
   units: UnitsTable;
@@ -119,4 +140,5 @@ export interface Database {
   jti_consumed: JtiConsumedTable;
   rate_buckets: RateBucketsTable;
   rater_ledger: RaterLedgerTable;
+  challenge_events: ChallengeEventsTable;
 }
