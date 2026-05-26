@@ -1,0 +1,29 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy to panel.goku.codes
+    runs-on: [self-hosted, panel-prod]
+    timeout-minutes: 15
+    steps:
+      - name: pull latest
+        run: |
+          cd "$HOME/panel"
+          git fetch --prune origin
+          git checkout main
+          git reset --hard origin/main
+          git log -1 --oneline
+
+      - name: deploy
+        run: |
+          chmod +x "$HOME/panel/scripts/deploy-prod.sh"
+          "$HOME/panel/scripts/deploy-prod.sh"
