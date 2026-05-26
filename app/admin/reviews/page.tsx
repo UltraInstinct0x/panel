@@ -2,8 +2,6 @@
 // Shows pending units sorted by oldest, verdict counts, link to public verdict page.
 import { requireAdminPage } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
-import Nav from '../../_components/Nav';
-
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -93,8 +91,7 @@ export default async function ReviewsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#eaeaea', fontFamily: 'ui-monospace, monospace' }}>
-      <Nav />
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
+<main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
         <h1 style={{ fontSize: 28, marginBottom: 8 }}>skill review queue</h1>
         <p style={{ color: '#888', marginBottom: 24 }}>
           rater-as-reviewer: skill diffs submitted by agents → human raters vote → CI gates use the verdict.

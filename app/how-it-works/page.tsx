@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Nav from '../_components/Nav';
-
 export const metadata: Metadata = {
   title: 'panel — how it works',
   description: 'ladder → emitter → marketplace loop. three layers of human signal, one shared rater pool, an sdk that fans out into adapters.',
@@ -27,9 +25,7 @@ const DIAGRAM = `   operator stack                        panel surface         
 export default function HowItWorks() {
   return (
     <>
-      <Nav />
-
-      <section className="section">
+<section className="section">
         <div className="container-narrow">
           <div className="section-eyebrow">how it works</div>
           <h1 style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: '-0.88px', marginBottom: 16 }}>

@@ -5,8 +5,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Script from 'next/script';
-import Nav from '../../_components/Nav';
-
 type Unit = {
   id: string;
   type: string;
@@ -123,8 +121,7 @@ export default function DemoAgent() {
 
   return (
     <>
-      <Nav />
-      <main style={sx.page}>
+<main style={sx.page}>
         <Script src="/v1.js" strategy="afterInteractive" />
         <div style={sx.wrap}>
           <h1 style={sx.h1}>panel — the agent-output demo</h1>

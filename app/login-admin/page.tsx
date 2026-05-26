@@ -1,8 +1,10 @@
 // /admin/login — kicks the user into Authentik OIDC login.
+// SessionProvider lives at the root (RootSessionProvider in app/layout.tsx),
+// so this page only needs the Suspense wrapper for useSearchParams().
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { signIn, useSession, SessionProvider } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
 const COLORS = {
@@ -14,11 +16,9 @@ const COLORS = {
 
 export default function AdminLoginPage() {
   return (
-    <SessionProvider>
-      <Suspense fallback={null}>
-        <AdminLoginInner />
-      </Suspense>
-    </SessionProvider>
+    <Suspense fallback={null}>
+      <AdminLoginInner />
+    </Suspense>
   );
 }
 

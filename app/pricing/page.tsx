@@ -1,7 +1,5 @@
 // /pricing — v0 published. dataset-return is the wedge, not the footnote.
 import Link from 'next/link';
-import Nav from '../_components/Nav';
-
 export const metadata = {
   title: 'pricing · panel',
   description: 'a captcha that asks visitors to judge real agent work. free for sites that need bot protection — paying operators get the dataset.',
@@ -39,8 +37,7 @@ const tiers = [
 export default function PricingPage() {
   return (
     <>
-      <Nav />
-      <main style={sx.page}>
+<main style={sx.page}>
         <header>
           <div style={sx.muted}>pricing · v0</div>
           <h1 style={sx.h1}>preference-data captcha.</h1>

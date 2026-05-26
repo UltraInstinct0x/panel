@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import Nav from '../_components/Nav';
 import { SparkArea, TypeDonut, TrustBars } from '../_components/charts/Charts';
 import { StatCard, ChartCard, EmptyState, PulseSkeleton, TypeChip } from '../_components/charts/Cards';
 import { fmt, typeColor } from '../_components/charts/util';
@@ -45,8 +44,7 @@ export default function OperatorPage() {
 
   return (
     <>
-      <Nav />
-      <div className="dash-container">
+<div className="dash-container">
         <header className="dash-header">
           <div>
             <h1 className="dash-h1">operator console</h1>

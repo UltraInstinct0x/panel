@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Nav from '../_components/Nav';
 import { SparkArea, SparkLine, TypeDonut } from '../_components/charts/Charts';
 import { StatCard, ChartCard, EmptyState, PulseSkeleton, TypeChip } from '../_components/charts/Cards';
 import { fmt, typeColor } from '../_components/charts/util';
@@ -29,8 +28,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Nav />
-      <div className="dash-container">
+<div className="dash-container">
         <header className="dash-header">
           <div>
             <h1 className="dash-h1">rater dashboard</h1>
