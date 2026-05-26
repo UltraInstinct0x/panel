@@ -19,6 +19,15 @@ type Unit = {
   est_seconds?: number;
 };
 
+function defaultOptionsFor(unit: Unit): string[] {
+  const t = (unit.type || '').toLowerCase();
+  const q = (unit.question || '').toLowerCase();
+  if (t.includes('step_validity') || q.includes('is this valid')) return ['valid', 'invalid', 'unsure'];
+  if (t.includes('tool_call') || t.includes('reasoning_trace')) return ['good', 'mixed', 'bad', 'unsure'];
+  if (t.includes('pairwise') || q.includes('which') || q.includes('pick the better')) return ['a', 'b', 'tie', 'unsure'];
+  return ['1', '2', '3', '4', '5'];
+}
+
 const SITE_KEY = 'pk_demo_a';
 
 const sx = {
@@ -44,6 +53,7 @@ const sx = {
 function AgentUnit({ unit, onAnswer }: { unit: Unit; onAnswer: (v: string) => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const submit = (v: string) => { setPicked(v); onAnswer(v); };
+  useEffect(() => { setPicked(null); }, [unit.id]);
 
   if (unit.choices && unit.choices.length) {
     return (
@@ -78,16 +88,17 @@ function AgentUnit({ unit, onAnswer }: { unit: Unit; onAnswer: (v: string) => vo
     );
   }
 
+  const opts = defaultOptionsFor(unit);
   return (
     <div>
       {unit.prompt_context && <div style={sx.ctx}>{unit.prompt_context}</div>}
       <div style={sx.q}>{unit.question || 'rate this output (1–5)'}</div>
       <div style={sx.pillRow}>
-        {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} style={picked === String(n) ? { ...sx.pillBtn, background: '#163243', borderColor: '#67e8f9' } : sx.pillBtn} disabled={!!picked} onClick={() => submit(String(n))}>{n}</button>
+        {opts.map(v => (
+          <button key={v} style={picked === v ? { ...sx.pillBtn, background: '#163243', borderColor: '#67e8f9' } : sx.pillBtn} disabled={!!picked} onClick={() => submit(v)}>{v}</button>
         ))}
       </div>
-      {picked && <div style={sx.ok}>recorded: {picked}/5. this becomes a labeled example for the source agent.</div>}
+      {picked && <div style={sx.ok}>recorded: {picked}. this becomes a labeled example for the source agent.</div>}
     </div>
   );
 }
@@ -97,19 +108,28 @@ export default function DemoAgent() {
   const [technicalUnit, setTechnicalUnit] = useState<Unit | null>(null);
   const [tErr, setTErr] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const loadPublic = useCallback(async () => {
     const rid = 'demo_' + Math.random().toString(36).slice(2, 8);
     try {
       const p = await fetch(`/api/units/next?pool=public&rater_id=${rid}&site_key=${SITE_KEY}`).then(r => r.json());
       setPublicUnit(p);
     } catch (e) {/* noop */}
+  }, []);
+
+  const loadTechnical = useCallback(async () => {
+    const rid = 'demo_' + Math.random().toString(36).slice(2, 8);
+    setTErr(null);
     try {
       const t = await fetch(`/api/units/next?pool=technical&rater_id=t2_${rid}&site_key=${SITE_KEY}`).then(r => r.json());
       if (t?.error) setTErr(t.error); else setTechnicalUnit(t);
     } catch (e) { setTErr(String(e)); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadBoth = useCallback(async () => {
+    await Promise.all([loadPublic(), loadTechnical()]);
+  }, [loadPublic, loadTechnical]);
+
+  useEffect(() => { loadBoth(); }, [loadBoth]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -138,12 +158,12 @@ export default function DemoAgent() {
               this is what gates a signup form when you embed the widget.
             </p>
             <div style={sx.card}>
-              {publicUnit ? <AgentUnit unit={publicUnit} onAnswer={() => {}} /> : <div style={sx.hint}>loading…</div>}
+              {publicUnit ? <AgentUnit key={publicUnit.id} unit={publicUnit} onAnswer={() => {}} /> : <div style={sx.hint}>loading…</div>}
               <div style={{ ...sx.meta, marginTop: 14 }}>
                 unit_id: {publicUnit?.id} · type: {publicUnit?.type} · pool: public · ~{publicUnit?.est_seconds ?? '?'}s
               </div>
             </div>
-            <button style={{ ...sx.pillBtn, marginTop: 12 }} onClick={load}>load another →</button>
+            <button style={{ ...sx.pillBtn, marginTop: 12 }} onClick={loadPublic}>load another →</button>
           </section>
 
           <section style={sx.section}>
@@ -154,14 +174,14 @@ export default function DemoAgent() {
               judgment is a labeled example you own. no scale.ai contract, no surge invoice, no labeled-data vendor in the loop.
             </p>
             <div style={sx.card}>
-              {technicalUnit ? <AgentUnit unit={technicalUnit} onAnswer={() => {}} />
+              {technicalUnit ? <AgentUnit key={technicalUnit.id} unit={technicalUnit} onAnswer={() => {}} />
                 : tErr ? <div style={{ ...sx.hint, color: '#f87171' }}>technical pool unavailable: {tErr}</div>
                 : <div style={sx.hint}>loading…</div>}
               <div style={{ ...sx.meta, marginTop: 14 }}>
                 unit_id: {technicalUnit?.id} · type: {technicalUnit?.type} · source: {technicalUnit?.source_agent ?? '—'} · pool: technical
               </div>
             </div>
-            <button style={{ ...sx.pillBtn, marginTop: 12 }} onClick={load}>load another →</button>
+            <button style={{ ...sx.pillBtn, marginTop: 12 }} onClick={loadTechnical}>load another →</button>
           </section>
 
           <section style={sx.section}>
