@@ -11,10 +11,16 @@ jobs:
     timeout-minutes: 10
     env:
       PANEL_SIGNING_SECRET: ci-test-secret
-      PANEL_SITE_KEYS: pk_demo_a,pk_demo_b
+      # PANEL_SITE_KEYS still feeds lib/auth.ts requireSiteKey() (env-array
+      # allowlist used by /api/units/next and /api/judgments). Keep it in
+      # sync with PANEL_DEMO_SITE_KEY so smoke's bearer+header path works.
+      PANEL_SITE_KEYS: pk_demo_ci
+      PANEL_DEMO_SITE_KEY: pk_demo_ci
       PANEL_DB_PATH: ${{ github.workspace }}/data/panel-ci.db
       PANEL_BASE: http://127.0.0.1:3015
-      PANEL_KEY: pk_demo_a
+      PANEL_KEY: pk_demo_ci
+      NODE_ENV: test
+      BILLING_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
 
@@ -51,16 +57,23 @@ jobs:
       - name: build
         run: pnpm build
 
-      - name: start (background)
+      - name: seed ci site_key
         run: |
           mkdir -p data
+          pnpm exec tsx scripts/seed-ci-site-key.ts
+
+      - name: start (background)
+        run: |
           nohup pnpm start > server.log 2>&1 &
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3015/api/health >/dev/null 2>&1; then
-              echo "panel up"; break
+              echo "panel up after ${i}s"; exit 0
             fi
             sleep 1
           done
+          echo "server failed to start"
+          tail -100 server.log
+          exit 1
 
       - name: smoke
         run: bash scripts/smoke.sh
