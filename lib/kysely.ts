@@ -22,9 +22,7 @@ function build(): DB {
   if (dialect === 'postgres' || dialect === 'pg') {
     // lazy: only require pg when explicitly opted-in so sqlite-only prod builds
     // don't pull the pg native dep.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { PostgresDialect } = require('kysely');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Pool } = require('pg');
     const url = process.env.PANEL_DB_URL;
     if (!url) throw new Error('PANEL_DB_URL required when PANEL_DB_DIALECT=postgres');

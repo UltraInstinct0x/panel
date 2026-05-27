@@ -128,6 +128,90 @@ export interface ChallengeEventsTable {
   resolution: string | null;
 }
 
+export interface OperatorsTable {
+  id: string;
+  email: string | null;
+  tier: string;
+  dunning_state: string;
+  payment_failures: number;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StripeCustomersTable {
+  operator_id: string;
+  stripe_customer_id: string;
+  email: string | null;
+  created_at: number;
+}
+
+export interface SubscriptionsTable {
+  id: string;
+  operator_id: string;
+  stripe_subscription_id: string;
+  tier: string;
+  status: string;
+  current_period_end: number | null;
+  cancel_at_period_end: number;
+  metered_price_id: string | null;
+  base_price_id: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface UsageEventsTable {
+  id: string;
+  operator_id: string;
+  event_name: string;
+  quantity: number;
+  ts: number;
+  flushed_at: number | null;
+}
+
+export interface BillingEventsTable {
+  id: string;
+  stripe_event_id: string;
+  type: string;
+  payload_json: string;
+  processed_at: number;
+}
+
+export interface BillingAlertsTable {
+  id: string;
+  operator_id: string;
+  level: string;
+  event_name: string;
+  detail_json: string | null;
+  created_at: number;
+}
+
+export interface RaterAccountsTable {
+  rater_id: string;
+  stripe_account_id: string;
+  country: string | null;
+  payouts_enabled: number;
+  charges_enabled: number;
+  platform_fee_bps: number;
+  design_partner_managed: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface RaterCreditsTable {
+  id: string;
+  rater_id: string;
+  judgment_id: string;
+  gross_cents: number;
+  platform_fee_bps: number;
+  net_cents: number;
+  status: string;
+  transfer_id: string | null;
+  settled_at: number | null;
+  created_at: number;
+}
+
 // the master DB shape. add new tables here as they land.
 export interface Database {
   units: UnitsTable;
@@ -141,4 +225,12 @@ export interface Database {
   rate_buckets: RateBucketsTable;
   rater_ledger: RaterLedgerTable;
   challenge_events: ChallengeEventsTable;
+  operators: OperatorsTable;
+  stripe_customers: StripeCustomersTable;
+  subscriptions: SubscriptionsTable;
+  usage_events: UsageEventsTable;
+  billing_events: BillingEventsTable;
+  billing_alerts: BillingAlertsTable;
+  rater_accounts: RaterAccountsTable;
+  rater_credits: RaterCreditsTable;
 }

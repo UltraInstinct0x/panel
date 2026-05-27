@@ -21,6 +21,19 @@ function openDb(): Database.Database {
   d.pragma('journal_mode = WAL');
   d.pragma('foreign_keys = ON');
   d.exec(`
+    CREATE TABLE IF NOT EXISTS operators (
+      id TEXT PRIMARY KEY,
+      email TEXT,
+      tier TEXT NOT NULL DEFAULT 'selfhost',
+      dunning_state TEXT NOT NULL DEFAULT 'ok',
+      payment_failures INTEGER NOT NULL DEFAULT 0,
+      stripe_customer_id TEXT,
+      stripe_subscription_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_operators_tier ON operators(tier);
+
     CREATE TABLE IF NOT EXISTS units (
       id TEXT PRIMARY KEY,
       json TEXT NOT NULL,
@@ -112,6 +125,84 @@ function openDb(): Database.Database {
       blob_json TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_traces_agent ON traces(source_agent);
+
+    CREATE TABLE IF NOT EXISTS stripe_customers (
+      operator_id TEXT PRIMARY KEY,
+      stripe_customer_id TEXT NOT NULL,
+      email TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      operator_id TEXT NOT NULL,
+      stripe_subscription_id TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      status TEXT NOT NULL,
+      current_period_end INTEGER,
+      cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+      metered_price_id TEXT,
+      base_price_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_stripe_sub ON subscriptions(stripe_subscription_id);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_operator ON subscriptions(operator_id);
+
+    CREATE TABLE IF NOT EXISTS usage_events (
+      id TEXT PRIMARY KEY,
+      operator_id TEXT NOT NULL,
+      event_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      ts INTEGER NOT NULL,
+      flushed_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_usage_unflushed ON usage_events(flushed_at, operator_id, event_name);
+
+    CREATE TABLE IF NOT EXISTS billing_events (
+      id TEXT PRIMARY KEY,
+      stripe_event_id TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      processed_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS billing_alerts (
+      id TEXT PRIMARY KEY,
+      operator_id TEXT NOT NULL,
+      level TEXT NOT NULL,
+      event_name TEXT NOT NULL,
+      detail_json TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_billing_alerts_operator ON billing_alerts(operator_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS rater_accounts (
+      rater_id TEXT PRIMARY KEY,
+      stripe_account_id TEXT NOT NULL,
+      country TEXT,
+      payouts_enabled INTEGER NOT NULL DEFAULT 0,
+      charges_enabled INTEGER NOT NULL DEFAULT 0,
+      platform_fee_bps INTEGER NOT NULL DEFAULT 2000,
+      design_partner_managed INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS rater_credits (
+      id TEXT PRIMARY KEY,
+      rater_id TEXT NOT NULL,
+      judgment_id TEXT NOT NULL,
+      gross_cents INTEGER NOT NULL,
+      platform_fee_bps INTEGER NOT NULL,
+      net_cents INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      transfer_id TEXT,
+      settled_at INTEGER,
+      created_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_rater_credits_judgment ON rater_credits(judgment_id);
+    CREATE INDEX IF NOT EXISTS idx_rater_credits_status ON rater_credits(status, created_at);
   `);
   // WS-N: additive column migrations on units.
   try { d.exec(`ALTER TABLE units ADD COLUMN trace_id TEXT`); } catch {}

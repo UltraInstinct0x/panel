@@ -185,7 +185,7 @@ function MintedCard({ m, onClose }: { m: Minted; onClose: () => void }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <div style={{ color: COLORS.cyan, fontWeight: 500, fontSize: 13 }}>
-          minted · copy now (ingest_secret won't be shown again)
+          minted · copy now (ingest_secret won&apos;t be shown again)
         </div>
         <button onClick={onClose} style={{ ...btnGhost, color: COLORS.fgDim }}>dismiss</button>
       </div>

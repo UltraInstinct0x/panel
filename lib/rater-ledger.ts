@@ -23,6 +23,30 @@ export type WeightedConsensusResult = {
   max_weight_applied: number;
 };
 
+export function platformFeeBpsForRater(input: { defaultBps: number; isT3: boolean; designPartnerManaged: boolean }): number {
+  if (input.designPartnerManaged) return 0;
+  if (input.isT3) return 1500;
+  return input.defaultBps;
+}
+
+export function creditRater(raterId: string, amountCents: number, judgmentId: string, platformFeeBps = 2000): { netCents: number; grossCents: number } {
+  const gross = Math.max(0, Math.floor(amountCents));
+  const fee = Math.floor((gross * platformFeeBps) / 10_000);
+  const net = Math.max(0, gross - fee);
+  db.prepare(`INSERT INTO rater_credits (id, rater_id, judgment_id, gross_cents, platform_fee_bps, net_cents, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+    ON CONFLICT(judgment_id) DO NOTHING`).run(
+      `rc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      raterId,
+      judgmentId,
+      gross,
+      platformFeeBps,
+      net,
+      Date.now(),
+    );
+  return { netCents: net, grossCents: gross };
+}
+
 const PANEL_RATER_LEDGER_MIN_JUDGMENTS = Number(process.env.PANEL_RATER_LEDGER_MIN_JUDGMENTS || 12);
 
 export function getLedgerFallbackThreshold(): number {

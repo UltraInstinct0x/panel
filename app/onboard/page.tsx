@@ -50,7 +50,7 @@ export default function OnboardPage() {
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <div style={{ color: COLORS.green, fontSize: 14, marginBottom: 8 }}>application submitted</div>
           <div style={{ color: COLORS.fgDim, fontSize: 13, marginBottom: 16 }}>
-            we'll review and email you. reference:
+            we&apos;ll review and email you. reference:
           </div>
           <code style={{ fontFamily: FONT.mono, color: COLORS.cyan, background: COLORS.bg2, padding: '6px 12px', borderRadius: 6, fontSize: 12 }}>{done.id}</code>
         </div>
@@ -106,7 +106,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <div style={{ fontSize: 11, color: COLORS.fgFaint, letterSpacing: 0.4, textTransform: 'uppercase' }}>panel</div>
           <h1 style={{ fontSize: 22, fontWeight: 500, margin: '4px 0 6px', letterSpacing: -0.3 }}>operator application</h1>
           <p style={{ color: COLORS.fgDim, fontSize: 13, margin: 0 }}>
-            tell us what you're building. we manually approve to keep the rater pool clean. reply within 24h.
+            tell us what you&apos;re building. we manually approve to keep the rater pool clean. reply within 24h.
           </p>
         </header>
         {children}
