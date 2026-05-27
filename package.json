@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3015 -H 127.0.0.1",
-    "build": "next build",
+    "build": "next build && node scripts/postbuild-standalone.mjs",
     "start": "next start -p 3015 -H 127.0.0.1",
     "lint": "next lint",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -14,6 +14,8 @@
     "test:edge-runtime-fallback": "tsx __tests__/edge-runtime-fallback.test.ts",
     "test:edge-feature-schema": "tsx __tests__/edge-feature-schema.test.ts",
     "test:billing-core": "tsx __tests__/billing-core.test.ts",
+    "test:launch-blockers": "tsx __tests__/launch-blockers.test.ts",
+    "test": "pnpm test:scrubber-gate && pnpm test:operator-mint && pnpm test:archive-seeder && pnpm test:edge-runtime-fallback && pnpm test:edge-feature-schema && pnpm test:billing-core && pnpm test:launch-blockers",
     "seed:archive": "tsx scripts/seed-archive-honeypots.ts"
   },
   "dependencies": {

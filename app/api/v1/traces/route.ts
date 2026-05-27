@@ -17,7 +17,7 @@ import { verifyIngestSecret, getIngestSecretHash } from '@/lib/operator-mint';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const ASYNC_THRESHOLD = 100 * 1024; // 100KB
+const MAX_PAYLOAD_BYTES = 256 * 1024;
 
 function ingestSecretFor(siteKey: string): string | null {
   const envKey = `PANEL_INGEST_SECRET_${siteKey.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
@@ -100,6 +100,12 @@ export async function POST(req: NextRequest) {
   const sig = req.headers.get('x-panel-ingest-sig') || '';
   const raw = await req.text();
 
+  const byteLen = Buffer.byteLength(raw, 'utf8');
+  if (byteLen > MAX_PAYLOAD_BYTES) {
+    logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 413, ms: Date.now() - started, site_key: siteKey, ip });
+    return NextResponse.json({ error: 'payload_too_large', max_bytes: MAX_PAYLOAD_BYTES, received_bytes: byteLen }, { status: 413 });
+  }
+
   const rl = checkBoth(ip, siteKey);
   if (!rl.ok) {
     const res = NextResponse.json({ error: 'rate_limited', scope: rl.scope, retry_after_s: rl.retry_after_s }, { status: 429 });
@@ -172,30 +178,27 @@ export async function POST(req: NextRequest) {
     ingested_at: Date.now(),
     scrubber_attestation_jti: attJti,
     blob_size: blobJson.length,
-    status: blobJson.length > ASYNC_THRESHOLD ? 'pending' : 'done',
+    status: 'pending',
     result_json: null,
     blob_json: blobJson,
   });
 
-  // async path: large blob → 202, run splitter in background.
-  if (blobJson.length > ASYNC_THRESHOLD) {
-    audit('operator', siteKey, 'traces.accepted_async', 'traces', trace_id, { bytes: blobJson.length });
-    // fire and forget
-    (async () => {
-      try {
-        const out = await runSplitterAndPersist(trace_id, body);
-        await updateTraceStatus(trace_id, 'done', JSON.stringify(out));
-      } catch (err: any) {
-        await updateTraceStatus(trace_id, 'error', JSON.stringify({ error: String(err?.message || err) }));
-      }
-    })();
-    const res = NextResponse.json({ trace_id, status: 'pending', poll: `/v1/traces/${trace_id}` }, { status: 202 });
-    for (const [k, v] of Object.entries(rateLimitHeaders(rl))) res.headers.set(k, v);
-    return res;
+  // launch-blocker T5: previous implementation returned 202 then ran an
+  // unawaited IIFE that silently lost work on container recycle. We now run
+  // splitting + persistence synchronously and return 200 with the result.
+  // TODO(post-pilot): replace with a durable queue (BullMQ / pg-boss / etc.)
+  // once we have multi-worker traffic that warrants async ingestion. See the
+  // launch-readiness audit (P0 item #5) for the long-term plan.
+  let out: SplitOutcome;
+  try {
+    out = await runSplitterAndPersist(trace_id, body);
+  } catch (err) {
+    const msg = String((err as Error)?.message ?? 'unknown').slice(0, 500);
+    try { await updateTraceStatus(trace_id, 'error', JSON.stringify({ error: msg })); } catch {}
+    try { audit('operator', siteKey, 'traces.splitter_error', 'traces', trace_id, { error: msg.slice(0, 200) }); } catch {}
+    logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 500, ms: Date.now() - started, site_key: siteKey, ip, rl, err: msg });
+    return NextResponse.json({ error: 'trace_processing_failed', trace_id }, { status: 500 });
   }
-
-  // sync path
-  const out = await runSplitterAndPersist(trace_id, body);
   await updateTraceStatus(trace_id, 'done', JSON.stringify(out));
   audit('operator', siteKey, 'traces.ok', 'traces', trace_id, { units: out.unit_ids.length, structural: out.structural_count, llm: out.llm_count });
 

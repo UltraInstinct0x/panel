@@ -1,5 +1,11 @@
 # Billing Layer (Stripe test mode)
 
+## Enablement
+
+`BILLING_ENABLED=false` is the default. The billing routes (`/api/billing/portal`, `/api/billing/checkout`) and webhook handlers respond `503 billing_disabled` when the flag is off, regardless of whether Stripe keys are present.
+
+Flip `BILLING_ENABLED=true` **only after Stripe live keys are provisioned**. In production (`NODE_ENV=production`) with `BILLING_ENABLED=true`, the absence of `STRIPE_SECRET_KEY` throws at config load — this is intentional so misconfigured prod deploys fail fast. With `BILLING_ENABLED=false` no Stripe env vars are required at all.
+
 ## Local setup
 
 Set env vars (test keys):

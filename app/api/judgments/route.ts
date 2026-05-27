@@ -5,10 +5,17 @@ import { requireSiteKey } from '@/lib/auth';
 import { issue, scoreBehavioral } from '@/lib/attestation';
 import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
 import { logAccess } from '@/lib/logger';
+import { resolveRaterSession } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 const ENGAGEMENT_MIN_MS = 2500;
+
+function bearerToken(req: NextRequest): string | null {
+  const h = req.headers.get('authorization') || '';
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1].trim() : null;
+}
 
 export async function POST(req: NextRequest) {
   const started = Date.now();
@@ -28,11 +35,31 @@ export async function POST(req: NextRequest) {
     return auth.res;
   }
 
-  let body: any;
-  try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
+  const tok = bearerToken(req);
+  if (!tok) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'missing_bearer' });
+    return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+  }
+  const sess = resolveRaterSession(tok);
+  if (!sess) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'invalid_rater_session' });
+    return NextResponse.json({ error: 'invalid_rater_session' }, { status: 401 });
+  }
+  const rater_id = sess.rater_id;
 
-  const { unit_id, rater_id, choice, latency_ms, confidence, behavioral } = body || {};
-  if (!unit_id || !rater_id || !choice) {
+  let body: any;
+  try { body = await req.json(); } catch {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 400, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'bad_json' });
+    return NextResponse.json({ error: 'bad_json' }, { status: 400 });
+  }
+
+  if (body && body.rater_id !== undefined) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 400, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'rater_id_in_body_deprecated' });
+    return NextResponse.json({ error: 'rater_id_in_body_deprecated' }, { status: 400 });
+  }
+
+  const { unit_id, choice, latency_ms, confidence, behavioral } = body || {};
+  if (!unit_id || !choice) {
     return NextResponse.json({ error: 'missing required fields' }, { status: 400 });
   }
 
@@ -44,7 +71,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = recordJudgment({
       unit_id,
-      rater_id: String(rater_id),
+      rater_id,
       choice: String(choice),
       latency_ms: lat,
       confidence: Number(confidence) || 0.5,
@@ -53,7 +80,7 @@ export async function POST(req: NextRequest) {
     });
 
     const unit = getUnit(unit_id)!;
-    const behavioral_score = applyBehavioralFloor(scoreBehavioral(behavioral), String(rater_id));
+    const behavioral_score = applyBehavioralFloor(scoreBehavioral(behavioral), rater_id);
     const token = issue({
       jti: result.judgment.id,
       uid: unit_id,

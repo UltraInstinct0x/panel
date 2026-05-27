@@ -13,12 +13,14 @@ function opt(name: string): string | null {
 
 export function getBillingConfig() {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? '';
-  const enabled = Boolean(stripeSecretKey);
+  const billingEnabled = process.env.BILLING_ENABLED === 'true';
   const isProd = process.env.NODE_ENV === 'production';
 
-  if (isProd && !enabled) {
-    throw new Error('STRIPE_SECRET_KEY is required in production');
+  if (billingEnabled && isProd && !stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY required when BILLING_ENABLED=true in production');
   }
+
+  const enabled = billingEnabled && Boolean(stripeSecretKey);
 
   return {
     enabled,
