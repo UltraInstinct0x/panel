@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verify } from '@/lib/attestation';
 import { isJtiConsumed, consumeJti } from '@/lib/db';
 import { audit } from '@/lib/audit';
+import { enforceBillingGate } from '@/lib/billing/gate';
+import { recordVerify } from '@/lib/billing/meter';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'replay' }, { status: 409 });
   }
   consumeJti(r.payload.jti, r.payload.exp);
+  const operatorId = String(r.payload.site_key || 'default_operator');
+  const gate = enforceBillingGate(operatorId);
+  if (gate) return gate;
+  recordVerify(operatorId);
   audit('operator', String(r.payload.site_key || 'unknown'), 'verify.ok', 'judgments', String(r.payload.jti || ''), {
     jti: r.payload.jti,
     score: r.payload.rater?.behavioral_score,
