@@ -18,10 +18,13 @@ import { deriveFingerprint } from '@/lib/behavioral-fingerprint';
 import { riskFromReq } from '@/lib/threat-score';
 import { pickTier, DEFAULT_POLICY, TierPolicy } from '@/lib/tier-ladder';
 import { createSession } from '@/lib/tier-session';
-import { getTierPolicyJson, getSiteKey } from '@/lib/db';
+import { getTierPolicyJson, getSiteKey, getActiveSiteKey } from '@/lib/db';
 import { recordChallengeIssued } from '@/lib/operator-stats';
 import { pickNextUnit } from '@/lib/store';
 import { issue } from '@/lib/attestation';
+import { audit } from '@/lib/audit';
+
+const DEMO_SITE_KEY = process.env.PANEL_DEMO_SITE_KEY || 'demo_public';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,18 +52,47 @@ export async function POST(req: NextRequest) {
   const siteKey = String(body?.site_key || '');
   if (!siteKey) return NextResponse.json({ error: 'missing site_key' }, { status: 400 });
   const pool = (body?.pool === 'technical' ? 'technical' : 'public') as 'public' | 'technical';
-  // ensure site_key row exists (so tier_policy lookup is meaningful) — fail open: unknown → use defaults
-  void getSiteKey(siteKey);
+
+  // launch-blocker T2: reject unknown/inactive site_keys; demo key is the
+  // sole exception (kept for marketing demo path without a real operator row).
+  const isDemoKey = siteKey === DEMO_SITE_KEY;
+  if (!isDemoKey) {
+    const active = getActiveSiteKey(siteKey);
+    if (!active) {
+      try {
+        const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+        audit('operator', siteKey, 'challenge.site_key_rejected', 'site_keys', siteKey, { ip });
+      } catch {}
+      return NextResponse.json({ error: 'site_key_unknown_or_inactive' }, { status: 403 });
+    }
+  } else {
+    void getSiteKey(siteKey);
+  }
 
   const fp = deriveFingerprint(body?.fingerprint);
   const risk = riskFromReq(req, body?.fingerprint_id || null, Number(body?.session_age_ms) || 0);
   const policy = loadPolicy(siteKey);
   let tier = pickTier(policy, fp, risk.score);
-  // debug/demo override — explicit forced tier (used by /demo/c0-c3).
-  // safe because the *resolve* step still has to satisfy the tier's gating
-  // (e.g. C0 still needs the dwell+trust floor on the resolve call).
-  const forced = body?._debug_force_tier;
-  if (forced === 'C0' || forced === 'C1' || forced === 'C2' || forced === 'C3') tier = forced;
+
+  // launch-blocker T1: _debug_force_tier gated on non-prod NODE_ENV AND signed
+  // header matching PANEL_DEBUG_SECRET. Unset secret → unconditionally disabled.
+  // Disallowed requests are silently ignored (no 4xx — avoids leaking env state).
+  const debugAllowed =
+    process.env.NODE_ENV !== 'production' &&
+    !!process.env.PANEL_DEBUG_SECRET &&
+    req.headers.get('x-panel-debug-secret') === process.env.PANEL_DEBUG_SECRET;
+  const requestedForced = body?._debug_force_tier;
+  const forced = debugAllowed ? requestedForced : undefined;
+  if (forced === 'C0' || forced === 'C1' || forced === 'C2' || forced === 'C3') {
+    tier = forced;
+  } else if (requestedForced && !debugAllowed) {
+    try {
+      audit('operator', siteKey, 'challenge.debug_force_tier_ignored', 'challenge', '', {
+        site_key: siteKey,
+        requested: String(requestedForced),
+      });
+    } catch {}
+  }
 
   // pick units. for C2/C3 we pick distinct units (anti-dup).
   const raterId = String(body?.rater_id || `anon_${crypto.randomBytes(6).toString('hex')}`);
@@ -111,6 +143,7 @@ export async function POST(req: NextRequest) {
     max_attempts: sess.max_attempts,
     rater_id: raterId,
   };
+  if (isDemoKey) resp.pool = 'public';
   if (tier === 'C0') {
     // panel-native animation hint. widget owns the implementation; this is the spec marker.
     resp.animation_hint = { glyph: 'diamond_scanline', ms: 1200, caption: 'verified' };

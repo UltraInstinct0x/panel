@@ -1,9 +1,18 @@
 // lib/auth-options.ts — NextAuth config: Authentik OIDC + groups → panel-admins gate.
 import type { NextAuthOptions } from 'next-auth';
+import { db } from './db';
 
 const issuer = process.env.AUTHENTIK_ISSUER || '';
 const clientId = process.env.AUTHENTIK_CLIENT_ID || '';
 const clientSecret = process.env.AUTHENTIK_CLIENT_SECRET || '';
+
+function operatorIdForEmail(email: string | null | undefined): string | undefined {
+  if (!email) return undefined;
+  try {
+    const row = db.prepare('SELECT id FROM operators WHERE email = ? LIMIT 1').get(email) as { id: string } | undefined;
+    return row?.id;
+  } catch { return undefined; }
+}
 
 // Authentik returns groups in the userinfo / id_token when scope=goauthentik.io/api or `groups` claim is enabled.
 // We request openid+email+profile by default and rely on a custom property mapping to expose groups.
@@ -38,7 +47,6 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account, profile }) {
-      // first sign-in: pull groups from the id_token / userinfo profile
       if (account && profile) {
         const p: any = profile;
         const groups: string[] = Array.isArray(p.groups) ? p.groups : [];
@@ -46,14 +54,19 @@ export const authOptions: NextAuthOptions = {
         token.email = p.email || token.email;
         token.name = p.name || p.preferred_username || token.name;
         token.isAdmin = groups.some(g => ADMIN_GROUPS.includes(g));
+        token.operatorId = operatorIdForEmail(p.email || (token.email as string | undefined));
+      } else if (!token.operatorId) {
+        token.operatorId = operatorIdForEmail(token.email as string | undefined);
       }
       return token;
     },
     async session({ session, token }) {
       (session as any).groups = token.groups || [];
       (session as any).isAdmin = !!token.isAdmin;
+      (session as any).operatorId = token.operatorId;
       if (session.user) {
         (session.user as any).id = token.sub;
+        (session.user as any).operatorId = token.operatorId;
       }
       return session;
     },

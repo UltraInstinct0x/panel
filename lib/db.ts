@@ -203,6 +203,17 @@ function openDb(): Database.Database {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_rater_credits_judgment ON rater_credits(judgment_id);
     CREATE INDEX IF NOT EXISTS idx_rater_credits_status ON rater_credits(status, created_at);
+
+    CREATE TABLE IF NOT EXISTS rater_sessions (
+      id TEXT PRIMARY KEY,
+      rater_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      source_site_key TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_rater_sessions_rater ON rater_sessions(rater_id);
+    CREATE INDEX IF NOT EXISTS idx_rater_sessions_exp ON rater_sessions(expires_at);
   `);
   // WS-N: additive column migrations on units.
   try { d.exec(`ALTER TABLE units ADD COLUMN trace_id TEXT`); } catch {}
@@ -325,6 +336,22 @@ export function getSiteKey(siteKey: string): SiteKeyRow | undefined {
   ).get(siteKey) as SiteKeyRow | undefined;
 }
 
+export interface ActiveSiteKeyRow {
+  site_key: string;
+  status: string;
+  owner_email: string | null;
+  tier_policy: string | null;
+}
+
+export function getActiveSiteKey(siteKey: string): ActiveSiteKeyRow | null {
+  const row = db.prepare(
+    'SELECT site_key, status, owner_email, tier_policy FROM site_keys WHERE site_key = ?',
+  ).get(siteKey) as ActiveSiteKeyRow | undefined;
+  if (!row) return null;
+  if (row.status !== 'active') return null;
+  return row;
+}
+
 export function upsertSiteKey(siteKey: string, scrubberRequired: boolean, label?: string): void {
   db.prepare(
     `INSERT INTO site_keys (site_key, scrubber_required, label, created_at)
@@ -359,4 +386,34 @@ export function registerShutdown(): void {
   };
   process.on('SIGTERM', () => close('SIGTERM'));
   process.on('SIGINT', () => close('SIGINT'));
+}
+
+const RATER_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const RATER_SESSION_HARD_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function createRaterSession(token: string, raterId: string, sourceSiteKey: string | null): { id: string; expires_at: number } {
+  const now = Date.now();
+  const expiresAt = now + RATER_SESSION_TTL_MS;
+  db.prepare(
+    'INSERT INTO rater_sessions (id, rater_id, created_at, last_seen_at, expires_at, source_site_key) VALUES (?, ?, ?, ?, ?, ?)',
+  ).run(token, raterId, now, now, expiresAt, sourceSiteKey);
+  return { id: token, expires_at: expiresAt };
+}
+
+export function resolveRaterSession(token: string): { rater_id: string } | null {
+  if (!token) return null;
+  const row = db.prepare(
+    'SELECT rater_id, created_at, expires_at FROM rater_sessions WHERE id = ?',
+  ).get(token) as { rater_id: string; created_at: number; expires_at: number } | undefined;
+  if (!row) return null;
+  const now = Date.now();
+  if (now > row.expires_at) return null;
+  if (now > row.created_at + RATER_SESSION_HARD_MAX_MS) return null;
+  const slid = Math.min(now + RATER_SESSION_TTL_MS, row.created_at + RATER_SESSION_HARD_MAX_MS);
+  db.prepare('UPDATE rater_sessions SET last_seen_at = ?, expires_at = ? WHERE id = ?').run(now, slid, token);
+  return { rater_id: row.rater_id };
+}
+
+export function gcRaterSessions(): number {
+  return db.prepare('DELETE FROM rater_sessions WHERE expires_at < ?').run(Date.now()).changes;
 }

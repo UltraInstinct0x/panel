@@ -4,8 +4,15 @@ import { requireSiteKey } from '@/lib/auth';
 import { scrubberConfigured, scrubText } from '@/lib/scrubber-client';
 import { checkBoth, clientIp, rateLimitHeaders } from '@/lib/ratelimit';
 import { logAccess } from '@/lib/logger';
+import { resolveRaterSession } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+
+function bearerToken(req: NextRequest): string | null {
+  const h = req.headers.get('authorization') || '';
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1].trim() : null;
+}
 
 export async function GET(req: NextRequest) {
   const started = Date.now();
@@ -28,16 +35,24 @@ export async function GET(req: NextRequest) {
     return auth.res;
   }
 
-  const rater_id = req.nextUrl.searchParams.get('rater_id') || 'anon';
+  const tok = bearerToken(req);
+  if (!tok) {
+    logAccess({ ts: started, method: 'GET', path: '/api/units/next', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl });
+    return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+  }
+  const sess = resolveRaterSession(tok);
+  if (!sess) {
+    logAccess({ ts: started, method: 'GET', path: '/api/units/next', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl });
+    return NextResponse.json({ error: 'invalid_rater_session' }, { status: 401 });
+  }
+  const rater_id = sess.rater_id;
   const poolParam = (req.nextUrl.searchParams.get('pool') || 'public') as UnitPool;
-  // D12: technical pool requires a trust-tier rater id prefix (T2+). anon → forbidden.
   if (poolParam === 'technical' && !rater_id.startsWith('t2_') && !rater_id.startsWith('t3_')) {
     logAccess({ ts: started, method: 'GET', path: '/api/units/next', status: 403, ms: Date.now() - started, site_key: auth.site_key, ip, rl });
     return NextResponse.json({ error: 'technical_pool_requires_trust_tier' }, { status: 403 });
   }
   getOrCreateRater(rater_id);
   const u = pickNextUnit(rater_id, poolParam, auth.site_key);
-  // strip gold + honeypot internals before sending
   const { gold, obvious_wrong_answer, is_honeypot, ...safe } = u;
 
   const sendJson = (body: any, status = 200) => {
