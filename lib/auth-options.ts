@@ -48,8 +48,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account && profile) {
-        const p: any = profile;
-        const groups: string[] = Array.isArray(p.groups) ? p.groups : [];
+        const p = profile as { groups?: unknown; email?: string; name?: string; preferred_username?: string };
+        const groups: string[] = Array.isArray(p.groups) ? p.groups as string[] : [];
         token.groups = groups;
         token.email = p.email || token.email;
         token.name = p.name || p.preferred_username || token.name;
@@ -61,12 +61,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      (session as any).groups = token.groups || [];
-      (session as any).isAdmin = !!token.isAdmin;
-      (session as any).operatorId = token.operatorId;
+      session.groups = token.groups || [];
+      session.isAdmin = !!token.isAdmin;
+      session.operatorId = token.operatorId;
       if (session.user) {
-        (session.user as any).id = token.sub;
-        (session.user as any).operatorId = token.operatorId;
+        (session.user as { id?: string }).id = token.sub;
+        session.user.operatorId = token.operatorId;
       }
       return session;
     },

@@ -36,15 +36,25 @@ export async function POST(req: NextRequest) {
   }
 
   const tok = bearerToken(req);
-  if (!tok) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+  if (!tok) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'missing_bearer' });
+    return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+  }
   const sess = resolveRaterSession(tok);
-  if (!sess) return NextResponse.json({ error: 'invalid_rater_session' }, { status: 401 });
+  if (!sess) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 401, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'invalid_rater_session' });
+    return NextResponse.json({ error: 'invalid_rater_session' }, { status: 401 });
+  }
   const rater_id = sess.rater_id;
 
   let body: any;
-  try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
+  try { body = await req.json(); } catch {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 400, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'bad_json' });
+    return NextResponse.json({ error: 'bad_json' }, { status: 400 });
+  }
 
   if (body && body.rater_id !== undefined) {
+    logAccess({ ts: started, method: 'POST', path: '/api/judgments', status: 400, ms: Date.now() - started, site_key: auth.site_key, ip, rl, err: 'rater_id_in_body_deprecated' });
     return NextResponse.json({ error: 'rater_id_in_body_deprecated' }, { status: 400 });
   }
 

@@ -100,9 +100,10 @@ export async function POST(req: NextRequest) {
   const sig = req.headers.get('x-panel-ingest-sig') || '';
   const raw = await req.text();
 
-  if (raw.length > MAX_PAYLOAD_BYTES) {
+  const byteLen = Buffer.byteLength(raw, 'utf8');
+  if (byteLen > MAX_PAYLOAD_BYTES) {
     logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 413, ms: Date.now() - started, site_key: siteKey, ip });
-    return NextResponse.json({ error: 'payload_too_large', max_bytes: MAX_PAYLOAD_BYTES }, { status: 413 });
+    return NextResponse.json({ error: 'payload_too_large', max_bytes: MAX_PAYLOAD_BYTES, received_bytes: byteLen }, { status: 413 });
   }
 
   const rl = checkBoth(ip, siteKey);
@@ -188,7 +189,16 @@ export async function POST(req: NextRequest) {
   // TODO(post-pilot): replace with a durable queue (BullMQ / pg-boss / etc.)
   // once we have multi-worker traffic that warrants async ingestion. See the
   // launch-readiness audit (P0 item #5) for the long-term plan.
-  const out = await runSplitterAndPersist(trace_id, body);
+  let out: SplitOutcome;
+  try {
+    out = await runSplitterAndPersist(trace_id, body);
+  } catch (err) {
+    const msg = String((err as Error)?.message ?? 'unknown').slice(0, 500);
+    try { await updateTraceStatus(trace_id, 'error', JSON.stringify({ error: msg })); } catch {}
+    try { audit('operator', siteKey, 'traces.splitter_error', 'traces', trace_id, { error: msg.slice(0, 200) }); } catch {}
+    logAccess({ ts: started, method: 'POST', path: '/v1/traces', status: 500, ms: Date.now() - started, site_key: siteKey, ip, rl, err: msg });
+    return NextResponse.json({ error: 'trace_processing_failed', trace_id }, { status: 500 });
+  }
   await updateTraceStatus(trace_id, 'done', JSON.stringify(out));
   audit('operator', siteKey, 'traces.ok', 'traces', trace_id, { units: out.unit_ids.length, structural: out.structural_count, llm: out.llm_count });
 

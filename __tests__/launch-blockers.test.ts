@@ -71,10 +71,15 @@ db.prepare('INSERT OR REPLACE INTO stripe_customers (operator_id, stripe_custome
 
   // ------ Test 3: _debug_force_tier ignored in production without secret ------
   {
-    const r = await challengeInit.POST(mkReq('http://x/api/challenge/init', { method: 'POST', body: { site_key: 'demo_public', _debug_force_tier: 'C3' } }));
+    // Provide a high-trust fingerprint so the NATURAL tier is C0/C1, not C3.
+    // Otherwise C3 is the zero-signal default and the assertion below can't
+    // distinguish "C3 because forced" from "C3 because no fingerprint data".
+    const mouse_samples = Array.from({ length: 40 }, (_, i) => ({ t: i * 50, x: 100 + i * 3 + (i % 5), y: 200 + (i % 7) * 2 }));
+    const goodFp = { mouse_samples, focus_events: 2, dwell_ms: 3500, pointer_type: 'mouse' as const };
+    const r = await challengeInit.POST(mkReq('http://x/api/challenge/init', { method: 'POST', body: { site_key: 'demo_public', fingerprint: goodFp, _debug_force_tier: 'C3' } }));
     ok('T3 still 200 (silent ignore, not 4xx)', r.status === 200);
     const j = await r.json();
-    ok('T3 tier NOT forced to C3', j.tier !== 'C3' || true);
+    ok('T3 tier NOT forced to C3', j.tier !== 'C3');
     // audit must record the ignore event
     const a = db.prepare("SELECT id FROM audit_log WHERE action = 'challenge.debug_force_tier_ignored' ORDER BY ts DESC LIMIT 1").get();
     ok('T3 audit row written', !!a);
@@ -138,13 +143,17 @@ db.prepare('INSERT OR REPLACE INTO stripe_customers (operator_id, stripe_custome
     }
   }
 
-  // ------ Test 10: v1/traces returns 413 for payloads > 256kb ------
+  // ------ Test 10: v1/traces returns 413 for payloads > 256kb (byte-length) ------
   {
-    const big = 'x'.repeat(260 * 1024);
+    // 4-byte UTF-8 char: JS .length == 2 (surrogate pair) so 70_000 chars => 140_000 UTF-16 units
+    // but 280_000 UTF-8 bytes. Old `raw.length` check would have let this through;
+    // Buffer.byteLength MUST catch it.
+    const big = '𝐀'.repeat(70_000);
     const r = await traces.POST(mkReq('http://x/api/v1/traces', { method: 'POST', headers: { 'x-panel-site-key': SK_ACTIVE }, body: { source_agent: 'test', big } }));
     eq('T10 traces oversized → 413', r.status, 413);
     const j = await r.json();
     eq('T10 max_bytes echoed', j.max_bytes, 256 * 1024);
+    ok('T10 received_bytes > max_bytes', typeof j.received_bytes === 'number' && j.received_bytes > 256 * 1024);
   }
 
   // ------ Test 11: v1/traces no longer spawns 202 async path ------

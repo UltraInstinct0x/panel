@@ -13,7 +13,7 @@ const VALID_INTERVALS = new Set(['monthly', 'annual']);
 export async function POST(req: NextRequest) {
   const session = await getPanelSession();
   if (!session) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
-  const operatorId = (session as any).operatorId || (session.user as any)?.operatorId;
+  const operatorId = session.operatorId || session.user?.operatorId;
   if (!operatorId) return NextResponse.json({ error: 'no_operator_for_user' }, { status: 403 });
   const email = session.user?.email || undefined;
 
