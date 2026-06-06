@@ -2,7 +2,7 @@
 import Link from 'next/link';
 export const metadata = {
   title: 'pricing · panel',
-  description: 'a captcha that asks visitors to judge real agent work. free for sites that need bot protection — paying operators get the dataset.',
+  description: 'Free invisible bot protection for any site. Paid tiers add policy controls, dataset exports, and panel-data workflows for agent teams.',
 };
 
 const sx = {
@@ -27,7 +27,7 @@ const sx = {
 };
 
 const tiers = [
-  { name: 'Free', price: '$0', sub: 'hosted · captcha-only', cta: 'get widget key', href: '/onboard?plan=free', features: ['unlimited verifies on captcha-protected pages', 'real human-judgment tasks (not pick-a-bus)', 'rotates from live operator traffic — bots can\'t pre-scrape', 'panel branding on widget', '1 domain · community support', 'no dataset access (your visitors judge, paying ops keep labels)'] },
+  { name: 'Free', price: '$0', sub: 'hosted · invisible bot check', cta: 'get widget key', href: '/onboard?plan=free', features: ['unlimited low-risk verifies on protected pages', 'passive browser + behavior telemetry', 'managed escalation when risk is unclear', 'panel branding on widget', '1 domain · community support', 'no dataset exports or paid rater workflows'] },
   { name: 'Design Partner', price: '$99', sub: 'per month · 25k verifies included', cta: 'apply', href: '/onboard', features: ['25k api calls/mo · $0.0020 overage', '30-day judgment dataset retention', 'csv/json export on demand', 'core + 1 vertical scrubber pack', '3 operator domains · email support 48h', 'preview cross-org pool (1k units sampled)'] },
   { name: 'Starter', price: '$199', sub: 'per month · 100k verifies included', cta: 'start', href: '/onboard', features: ['100k api calls/mo · $0.0018 overage', '90-day judgment dataset retention', 'csv/json export + api', 'core + 2 vertical scrubber packs', '5 operator domains · email support 24h', 'preview cross-org pool (10k units sampled)'], hot: true },
   { name: 'Growth', price: '$499', sub: 'per month · 500k verifies included', cta: 'contact', href: '/contact?topic=growth', features: ['500k api calls/mo · $0.0015 overage', '12-month dataset retention', 'csv/json + api + webhook', 'all vertical scrubber packs', '10 operator domains · 24h response, 99.5% uptime', 'full read access to cross-org pool', 'full theme widget'] },
@@ -40,12 +40,12 @@ export default function PricingPage() {
 <main style={sx.page}>
         <header>
           <div style={sx.muted}>pricing · v0</div>
-          <h1 style={sx.h1}>preference-data captcha.</h1>
+          <h1 style={sx.h1}>free invisible bot protection.</h1>
           <p style={sx.lede}>
-            a captcha that blocks bots by asking visitors to judge real work — agent outputs, skill diffs,
-            pairwise comparisons. <strong>free for any site that needs bot protection.</strong> the labels
-            your visitors produce flow into the pool that powers it, paying operators get the dataset and
-            fund the free tier. you protect your page, we improve the model, no one trains on stolen captchas.
+            Start with a Turnstile-style invisible check: passive risk scoring, abuse telemetry,
+            and a hosted widget for any page that needs protection. Paid tiers add stronger
+            policy controls, dataset exports, and optional panel-data workflows for teams that
+            want human or model feedback on agent outputs.
           </p>
         </header>
 

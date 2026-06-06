@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'panel — how it works',
-  description: 'ladder → emitter → marketplace loop. three layers of human signal, one shared rater pool, an sdk that fans out into adapters.',
+  description: 'Invisible verification → risk policy → edge-model flywheel. Paid panel-data loops are optional platform surfaces for agent teams.',
 };
 
 const DIAGRAM = `   operator stack                        panel surface                 raters
@@ -29,12 +29,12 @@ export default function HowItWorks() {
         <div className="container-narrow">
           <div className="section-eyebrow">how it works</div>
           <h1 style={{ fontSize: 44, lineHeight: 1.1, letterSpacing: '-0.88px', marginBottom: 16 }}>
-            ladder → emitter → marketplace loop.
+            invisible check → policy → learning edge.
           </h1>
           <p className="hero-sub" style={{ margin: '0 0 32px', textAlign: 'left' }}>
-            panel is a captcha-shaped feedback layer. the friction is the dataset.
-            operators emit, raters judge, signal returns. one rater pool, three layers,
-            one sdk.
+            Panel starts as free bot protection for normal sites. The platform loop is the moat:
+            verification traffic creates abuse telemetry, the edge model improves, and paid teams
+            can layer panel-data, rater workflows, and agent-output feedback on top.
           </p>
 
           <div className="code-wrap" style={{ marginBottom: 48 }}>

@@ -19,11 +19,11 @@ export default function Home() {
       <section className="hero">
         <div className="container">
           <span className="hero-eyebrow">live now · shipping weekly</span>
-          <h1>proof-of-humanity that produces signal.</h1>
+          <h1>free invisible bot protection.</h1>
           <p className="hero-sub">
-            three layers. one rater pool. visitors solve a taste captcha (L1),
-            operators ship agent outputs for humans to judge (L2), domain experts
-            review the high-stakes stuff (L3). the work is the proof. the proof is the dataset.
+            Panel is a Turnstile-like verification layer that stays invisible for trusted humans
+            and escalates only when risk is unclear. Every verification produces compact abuse
+            signals that train the edge model, so checks get quieter as the network learns.
           </p>
           <div className="hero-ctas">
             <Link href="/how-it-works" className="btn btn-primary">how it works</Link>
@@ -47,21 +47,21 @@ export default function Home() {
       <section className="section" id="ladder">
         <div className="container">
           <div className="section-eyebrow">the ladder</div>
-          <h2 className="section-title">three layers of human signal, one shared rater pool.</h2>
+          <h2 className="section-title">invisible by default, useful when it escalates.</h2>
           <p className="section-sub">
-            captcha at the bottom, expert review at the top. raters move up the ladder
-            as their trust score goes up. operators pick the layer that matches their stakes.
+            Most visitors pass through on behavioral and environment signals alone.
+            When risk is unclear, Panel can step up to human-safe judgment tasks.
+            The optional paid loop routes expert/agent-output reviews to trusted raters.
           </p>
 
           <div className="grid-3">
             <div className="step-card">
-              <div className="step-num">L1 · taste captcha</div>
+              <div className="step-num">L1 · invisible check</div>
               <div className="step-title">replaces recaptcha &amp; turnstile.</div>
               <p className="step-body">
-                visitors prove they&apos;re human by judging one piece of agent output —
-                pick the better headline, flag the off-sync dub, rank a vs b.
-                three seconds, taste/aesthetic friction, &apos;solve&apos; verb.
-                the answer is the proof. the proof becomes a labelled row.
+                Panel starts with passive behavioral and environment checks. Clean traffic
+                gets a token without a puzzle. Ambiguous traffic escalates to short,
+                grandma-safe tasks that also create model-training labels.
               </p>
             </div>
             <div className="step-card">
@@ -91,10 +91,11 @@ export default function Home() {
       <section className="section">
         <div className="container">
           <div className="section-eyebrow">the wedge</div>
-          <h2 className="section-title">recaptcha extracts free training data. panel routes signal to operators who pay raters.</h2>
+          <h2 className="section-title">turnstile gives you a token. panel gives you a learning edge.</h2>
           <p className="section-sub">
-            same friction, opposite economics. every captcha solve is a labelled row —
-            the only question is who owns it.
+            The free product is bot protection, not a data-labelling ask.
+            The flywheel is simple: verification traffic hardens the edge model;
+            paid operators can opt into panel-data and rater workflows later.
           </p>
 
           <div className="grid-2" style={{ marginTop: 32 }}>

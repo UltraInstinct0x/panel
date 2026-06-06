@@ -19,8 +19,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'panel — proof-of-humanity that produces signal',
-  description: 'three layers of human signal: taste captcha (L1), agent-output rating (L2), expert review (L3). one rater pool, one sdk, one feedback loop.',
+  title: 'panel — free invisible bot protection',
+  description: 'Turnstile-like invisible verification that learns from compact abuse signals, with policy controls and optional panel-data loops for agent teams.',
 };
 
 export const viewport: Viewport = {
