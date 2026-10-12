@@ -37,6 +37,8 @@ instead: **the page environment itself is the test.** humans and agents experien
 | 3 | **environment traps** | active, invisible | page contains things only agents would notice or interact with. see below. |
 | 4 | **public pool judgment** | active, escalated | taste, perception, AI-vs-real, media quality units — only served when layers 1-3 are ambiguous. grandma-safe: trivially easy for a human, subtly hard for current AI. |
 
+> Layers 2 and 3 describe the design target. In the current code only two client-side environment signals are collected (`navigator.webdriver` and a `HeadlessChrome` user-agent match), and neither is consumed by the server-side tier decision. The named environment traps are not implemented. See limitations below.
+
 ### environment traps (layer 3)
 
 the page embeds signals that humans ignore but agents can't resist processing:
@@ -58,6 +60,8 @@ the page embeds signals that humans ignore but agents can't resist processing:
 | natural | clean | trap triggered | pass | **low-trust** | AI agent (sophisticated) — operator decides |
 | any | any | no trap | fail | **none / blocked** | bot (LLM solver) — reject |
 | natural | clean | ambiguous | ambiguous | **low-trust** | uncertain — operator decides |
+
+> The resolver emits a binary `human` or `bot` verdict plus a confidence threshold, not the multi-class verdicts in this matrix. See limitations below.
 
 **important edge cases:**
 - **VPN users** — IP reputation is NOT a primary signal. many legitimate users use VPNs. behavioral telemetry + environment traps are the primary signals. vpn usage alone should not downgrade trust.
@@ -207,6 +211,31 @@ shipped: captcha widget (pill + inline modes), rater dashboard, operator dashboa
 
 in progress: scrubber-proxy GA, trust-tier paid pipeline, panel-data API, V5 broader agent scope unit types, SOC 2 posture.
 
+## Implemented in repository
+
+- A Next.js 14 app with sqlite persistence and an iframe SDK widget in pill and inline modes.
+- Public taste-pool units with a rater dashboard, an operator dashboard, HMAC-signed ingest, and per-site secrets.
+- Skill-review ingest plus a weighted-consensus verdict API.
+- Tier escalation driven by two hand-tuned heuristics: a threat score (request velocity, user-agent markers, session age) in `lib/threat-score.ts` and a six-feature behavioral fingerprint in `lib/behavioral-fingerprint.ts`, bucketed by fixed thresholds in `lib/tier-ladder.ts`.
+- CI that runs typecheck, build, a smoke script, two edge tests and two kysely database tests.
+
+## Limitations and unverified behavior
+
+- **Detection is primitive.** The classification core is fixed additive heuristics and thresholds rather than a trained model. The source itself labels the threat score "crude v0" and the behavioral fingerprint a "signal floor, not anti-bot magic".
+- **The edge model is scaffolding.** `public/edge/runtime.js` always returns `rules_only` and `public/edge/worker.js` states there are no real model artifacts yet, so every structured verdict uses the fallback confidence path.
+- **Verification layers 2 and 3 are not implemented.** Only `navigator.webdriver` and a `HeadlessChrome` user-agent match are collected, client-side, and neither feeds the server tier decision. The named environment traps do not exist in code.
+- **The verdict is binary.** The resolver returns `human` or `bot` with a confidence threshold, not the multi-class verdicts shown in the matrix above.
+- **CI coverage is partial.** CI does not run the aggregate `pnpm test` script and has no lint step, so most of the unit suites under `__tests__/` are not gated on pull requests.
+- **Tests were not run for this documentation.** The suite needs `pnpm install` and a native `better-sqlite3` build.
+
+## Roadmap (proposals, not commitments)
+
+These are proposals, not commitments or scheduled work:
+
+- Implement the layer 2 and layer 3 environment signals and the edge-model inference path.
+- Wire the aggregate `pnpm test` and a lint step into CI.
+- Broaden the unit types beyond the public taste pool (the V5 set).
+
 ## for agent developers
 
 if you're building an agent harness (claude code plugin, codex integration, opencode agent, MCP server, browser-use wrapper), panel can be your preference-data layer:
@@ -232,8 +261,9 @@ pnpm dev
 env:
 
 ```
-PANEL_DB_PATH=./panel.db
-PANEL_OPERATOR_SIGNING_KEY=<32+ random bytes>
+PANEL_SIGNING_SECRET=<32+ random bytes, e.g. openssl rand -hex 32>
+PANEL_SITE_KEYS=pk_demo_a,pk_demo_b
+# PANEL_DB_PATH=./data/panel.db   # optional, default ./data/panel.db
 ```
 
 ## deploy
